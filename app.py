@@ -16,6 +16,7 @@ from linebot.v3.messaging import (
     ApiClient,
     MessagingApi,
     ReplyMessageRequest,
+    PushMessageRequest,
     TextMessage,
     QuickReply,
     QuickReplyItem,
@@ -321,9 +322,48 @@ def api_admin_update_order(order_id):
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
+
+        # 1. 先查詢該筆訂單的 line_user_id 與 訂單細節
+        cursor.execute('SELECT line_user_id, items_summary, total_price FROM orders WHERE id=?', (order_id,))
+        order = cursor.fetchone()
+
+        if not order:
+            return jsonify({"success": False, "message": "找不到該筆訂單"}), 404
+
+        line_user_id = order['line_user_id']
+        items_summary = order['items_summary']
+
+        # 2. 更新資料庫中的訂單狀態
         cursor.execute('UPDATE orders SET status=? WHERE id=?', (status, order_id))
         conn.commit()
-        return jsonify({"success": True, "message": "狀態更新成功！"})
+
+        # 3. 發送 LINE Push Message 主動推播訊息給用戶 (若 line_user_id 不是 GUEST 且開頭為 U)
+        push_notice = ""
+        if line_user_id and line_user_id != 'GUEST' and line_user_id.startswith('U'):
+            try:
+                # 組合通知訊息
+                status_emoji = "🚚" if status == "已出貨" else ("✅" if status == "已完成" else "📦")
+                message_text = (
+                    f"{status_emoji} 訂單狀態更新通知！\n\n"
+                    f"您的訂單 #{order_id} 狀態已更新為：【 {status} 】\n\n"
+                    f"📋 訂單品項：\n{items_summary}\n\n"
+                    f"感謝您的支持，如有任何問題歡迎隨時在此留言！"
+                )
+
+                with ApiClient(configuration) as api_client:
+                    api = MessagingApi(api_client)
+                    api.push_message(
+                        PushMessageRequest(
+                            to=line_user_id,
+                            messages=[TextMessage(text=message_text)]
+                        )
+                    )
+                push_notice = "（已成功發送 LINE 通知給顧客）"
+            except Exception as push_err:
+                print(f"LINE Push Error: {push_err}")
+                push_notice = "（訂單狀態已更新，但 LINE 通知發送失敗，可能顧客未加入好友）"
+
+        return jsonify({"success": True, "message": f"狀態更新成功！{push_notice}"})
     except Exception as e:
         return jsonify({"success": False, "message": f"更新失敗: {str(e)}"}), 500
     finally:
