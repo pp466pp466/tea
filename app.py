@@ -8,21 +8,6 @@ from dotenv import load_dotenv
 from google import genai
 from init_db import create_and_seed_db
 
-# 匯入 LINE Message API v3
-from linebot.v3 import WebhookHandler
-from linebot.v3.exceptions import InvalidSignatureError
-from linebot.v3.messaging import (
-    Configuration,
-    ApiClient,
-    MessagingApi,
-    ReplyMessageRequest,
-    TextMessage,
-    LocationAction,
-    QuickReply,
-    QuickReplyItem
-)
-from linebot.v3.webhooks import MessageEvent, TextMessageContent, LocationMessageContent
-
 # 讀取 .env 變數
 load_dotenv()
 
@@ -139,6 +124,7 @@ def api_prices():
 
 @app.post('/api/register')
 def api_register():
+    create_and_seed_db()  # 確保資料表結構存在
     data = request.json or {}
     line_user_id = data.get('line_user_id', '').strip()
     name = data.get('name', '').strip()
@@ -164,6 +150,7 @@ def api_register():
 
 @app.post('/api/login')
 def api_login():
+    create_and_seed_db()  # 確保資料表結構存在
     data = request.json or {}
     phone = data.get('phone', '').strip()
     password = data.get('password', '').strip()
@@ -189,6 +176,7 @@ def api_login():
 
 @app.post('/api/checkout')
 def api_checkout():
+    create_and_seed_db()  # 確保資料表結構存在
     data = request.json or {}
     line_user_id = data.get('line_user_id', '').strip()
     total_price = data.get('total_price', 0)
@@ -210,6 +198,7 @@ def api_checkout():
 
 @app.get('/api/user/orders')
 def api_user_orders():
+    create_and_seed_db()  # 確保資料表結構存在
     phone = request.args.get('phone', '').strip()
     line_user_id = request.args.get('line_user_id', '').strip()
 
