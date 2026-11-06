@@ -27,6 +27,29 @@ def create_and_seed_db():
         )
     ''')
 
+    # 3. 建立會員資料表 (users)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            line_user_id TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )
+    ''')
+
+    # 4. 建立訂單資料表 (orders)
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            line_user_id TEXT NOT NULL,
+            items_summary TEXT NOT NULL,
+            total_price INTEGER NOT NULL,
+            status TEXT DEFAULT '已收到訂單',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
     # 檢查是否已有資料，無資料才注入初始預設值
     cursor.execute('SELECT COUNT(*) FROM services')
     if cursor.fetchone()[0] == 0:

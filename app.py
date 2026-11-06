@@ -88,6 +88,7 @@ def get_prices_from_db():
         msg_lines.append(f" • {item_name}：{price}")
 
     msg_lines.append(f"\n👉 前往訂購：\n{SERVER_URL}/cart")
+    msg_lines.append(f"👉 會員中心/查訂單：\n{SERVER_URL}/login")
 
     return "\n".join(msg_lines)
 
@@ -110,6 +111,18 @@ def index():
 def cart_page():
     return render_template('cart.html')
 
+@app.get('/register')
+def register_page():
+    return render_template('register.html')
+
+@app.get('/login')
+def login_page():
+    return render_template('login.html')
+
+@app.get('/orders')
+def orders_page():
+    return render_template('orders.html')
+
 @app.get('/api/prices')
 def api_prices():
     conn = sqlite3.connect(DB_NAME)
@@ -123,6 +136,115 @@ def api_prices():
         for r in rows
     ]
     return jsonify(products)
+
+@app.post('/api/register')
+def api_register():
+    data = request.json or {}
+    line_user_id = data.get('line_user_id', '').strip()
+    name = data.get('name', '').strip()
+    phone = data.get('phone', '').strip()
+    password = data.get('password', '').strip()
+
+    if not line_user_id or not name or not phone or not password:
+        return jsonify({"success": False, "message": "所有欄位皆為必填！"}), 400
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            INSERT INTO users (line_user_id, name, phone, password)
+            VALUES (?, ?, ?, ?)
+        ''', (line_user_id, name, phone, password))
+        conn.commit()
+        conn.close()
+        return jsonify({"success": True, "message": "註冊成功！"})
+    except sqlite3.IntegrityError:
+        conn.close()
+        return jsonify({"success": False, "message": "該 LINE User ID 或電話已被註冊！"}), 400
+
+@app.post('/api/login')
+def api_login():
+    data = request.json or {}
+    phone = data.get('phone', '').strip()
+    password = data.get('password', '').strip()
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, line_user_id, name, phone FROM users WHERE phone=? AND password=?', (phone, password))
+    user = cursor.fetchone()
+    conn.close()
+
+    if user:
+        return jsonify({
+            "success": True,
+            "user": {
+                "id": user[0],
+                "line_user_id": user[1],
+                "name": user[2],
+                "phone": user[3]
+            }
+        })
+    else:
+        return jsonify({"success": False, "message": "手機號碼或密碼錯誤！"}), 401
+
+@app.post('/api/checkout')
+def api_checkout():
+    data = request.json or {}
+    line_user_id = data.get('line_user_id', '').strip()
+    total_price = data.get('total_price', 0)
+    items_summary = data.get('items_summary', '').strip()
+
+    if not items_summary:
+        return jsonify({"success": False, "message": "購物車不能為空！"}), 400
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO orders (line_user_id, items_summary, total_price, status)
+        VALUES (?, ?, ?, ?)
+    ''', (line_user_id if line_user_id else 'GUEST', items_summary, total_price, '已收到訂單'))
+    conn.commit()
+    conn.close()
+
+    return jsonify({"success": True, "message": "下單成功！"})
+
+@app.get('/api/user/orders')
+def api_user_orders():
+    phone = request.args.get('phone', '').strip()
+    line_user_id = request.args.get('line_user_id', '').strip()
+
+    conn = sqlite3.connect(DB_NAME)
+    cursor = conn.cursor()
+    
+    # 支援使用 LINE User ID 或 Phone 查詢歷史訂單
+    if line_user_id:
+        cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (line_user_id,))
+    elif phone:
+        cursor.execute('SELECT line_user_id FROM users WHERE phone=?', (phone,))
+        u = cursor.fetchone()
+        if u and u[0]:
+            cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (u[0],))
+        else:
+            conn.close()
+            return jsonify([])
+    else:
+        conn.close()
+        return jsonify([])
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    orders = [
+        {
+            "order_id": r[0],
+            "items_summary": r[1],
+            "total_price": r[2],
+            "status": r[3],
+            "created_at": r[4]
+        }
+        for r in rows
+    ]
+    return jsonify(orders)
 
 @app.route('/callback', methods=['POST'])
 def callback():
@@ -147,7 +269,13 @@ def on_text(event):
         reply_msg = get_prices_from_db()
         reply_text(event.reply_token, reply_msg)
     elif command in {'訂購', '我要買茶葉'}:
-        reply_msg = f"請點選連結進入線上訂購頁面：\n👉 前往訂購：\n{SERVER_URL}/cart"
+        reply_msg = f"請點選連結進入線上訂購頁面：\n👉 前往訂購：\n{SERVER_URL}/cart\n👉 會員登入/查訂單：\n{SERVER_URL}/login"
+        reply_text(event.reply_token, reply_msg)
+    elif command in {'會員註冊', '註冊'}:
+        reply_msg = f"請點選連結進行會員綁定註冊：\n👉 註冊連結：\n{SERVER_URL}/register?line_user_id={event.source.user_id}"
+        reply_text(event.reply_token, reply_msg)
+    elif command in {'查訂單', '我的訂單'}:
+        reply_msg = f"請點擊查看您的歷史訂單紀錄：\n👉 查看訂單：\n{SERVER_URL}/orders?line_user_id={event.source.user_id}"
         reply_text(event.reply_token, reply_msg)
     elif command in {'預約', '立即預約'}:
         reply_text(event.reply_token, '如需預約茶藝體驗或專人導覽，請直接告知我們您預計過來的時間與人數！')
