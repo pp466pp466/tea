@@ -144,14 +144,14 @@
                 });
 
                 const data = await res.json();
-                if (data.status === 'success') {
+                if (data.success) {
                     alert('訂單建立成功！');
                     cart = {};
                     renderProducts();
                     updateSummary();
                 } else {
                     alert('訂單建立失敗：' + (data.message || '未知錯誤'));
-                }
+}
             } catch (err) {
                 alert('網路連線異常');
             }
