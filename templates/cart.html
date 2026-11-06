@@ -112,25 +112,60 @@
         }
 
         // 結帳功能
-        function checkout() {
+        async function checkout() {
             const totalQty = parseInt(document.getElementById('cart-count').innerText);
             if (totalQty === 0) {
                 showModal('提示', '購物車是空的，請先選擇商品！');
                 return;
             }
-            showModal('訂購成功', `已成功下單！共 ${totalQty} 件商品，總金額為 $${document.getElementById('cart-total').innerText} 元。專人將盡快與您聯繫！`);
-            cart = {};
-            updateCartUI();
+
+            const itemsSummary = Object.values(cart)
+                .map(i => `${i.item_name} x ${i.qty}`)
+                .join('\n');
+
+            const totalPrice = parseInt(document.getElementById('cart-total').innerText.replace(/,/g, '')) || 0;
+            
+            // 從 Session 或 URL 取得 LINE User ID
+            const userSession = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const urlParams = new URLSearchParams(window.location.search);
+            const lineUserId = userSession.line_user_id || urlParams.get('line_user_id') || '';
+
+            try {
+                const res = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        line_user_id: lineUserId,
+                        items_summary: itemsSummary,
+                        total_price: totalPrice
+                    })
+                });
+
+                if (res.ok) {
+                    showModal('訂購成功', `已成功下單！共 ${totalQty} 件商品，總金額為 $${totalPrice.toLocaleString()} 元。`, () => {
+                        // 帶上 line_user_id 轉址前往歷史訂單頁面
+                        window.location.href = `/orders${lineUserId ? '?line_user_id=' + lineUserId : ''}`;
+                    });
+                    cart = {};
+                    updateCartUI();
+                } else {
+                    showModal('下單失敗', '請重試！');
+                }
+            } catch (err) {
+                showModal('錯誤', '網路連線異常！');
+            }
         }
 
-        function showModal(title, msg) {
+        function showModal(title, msg, callback) {
             document.getElementById('modal-title').innerText = title;
             document.getElementById('modal-msg').innerText = msg;
             document.getElementById('modal').classList.remove('hidden');
+            window.modalCallback = callback;
         }
 
         function closeModal() {
             document.getElementById('modal').classList.add('hidden');
+            if (window.modalCallback) window.modalCallback();
         }
 
         fetchProducts();
