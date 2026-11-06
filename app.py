@@ -71,6 +71,9 @@ app = Flask(__name__, template_folder='templates')
 configuration = Configuration(access_token=os.getenv('LINE_CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
+# 設定外網 URL (需放在 LINE LOGIN 設定之前)
+SERVER_URL = os.getenv('SERVER_URL', 'https://tea-ynbg.onrender.com')
+
 # LINE Login 設定變數
 LINE_LOGIN_CLIENT_ID = os.getenv('LINE_LOGIN_CLIENT_ID')
 LINE_LOGIN_CLIENT_SECRET = os.getenv('LINE_LOGIN_CLIENT_SECRET')
