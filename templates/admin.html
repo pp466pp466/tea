@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>後台管理系統 - 茶香專賣店</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-stone-100 text-stone-800 min-h-screen">
+
+    <!-- 登入區域 (預設顯示) -->
+    <div id="login-section" class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4 border border-stone-200">
+            <h2 class="text-xl font-bold text-center text-amber-900">👑 管理員後台登入</h2>
+            <form onsubmit="handleAdminLogin(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">管理員帳號</label>
+                    <input type="text" id="admin-user" value="admin" required class="w-full border border-stone-300 rounded-lg p-2 text-sm focus:outline-none focus:border-amber-800">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-stone-600 mb-1">密碼</label>
+                    <input type="password" id="admin-pass" placeholder="預設密碼 admin123" required class="w-full border border-stone-300 rounded-lg p-2 text-sm focus:outline-none focus:border-amber-800">
+                </div>
+                <button type="submit" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-2.5 rounded-lg shadow transition">
+                    登入後台
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 管理儀表板 (登入後顯示) -->
+    <div id="admin-dashboard" class="hidden min-h-screen">
+        <header class="bg-amber-900 text-white p-4 shadow-md flex justify-between items-center sticky top-0 z-10">
+            <h1 class="text-lg font-bold tracking-wide">👑 茶香專賣店 - 後台管理系統</h1>
+            <button onclick="logoutAdmin()" class="text-xs bg-amber-800 hover:bg-amber-950 px-3 py-1.5 rounded-lg border border-amber-700">登出</button>
+        </header>
+
+        <main class="max-w-5xl mx-auto p-4 space-y-8">
+            <!-- 分頁選單 -->
+            <div class="flex space-x-2 border-b border-stone-300 pb-2">
+                <button id="tab-orders-btn" onclick="switchTab('orders')" class="px-4 py-2 font-bold text-amber-900 border-b-2 border-amber-900">📦 訂單管理</button>
+                <button id="tab-users-btn" onclick="switchTab('users')" class="px-4 py-2 font-bold text-stone-500 hover:text-amber-900">👥 會員帳號管理</button>
+            </div>
+
+            <!-- 1. 訂單管理分頁 -->
+            <section id="tab-orders" class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-stone-800">所有訂單列表</h2>
+                    <button onclick="loadOrders()" class="text-xs bg-stone-200 hover:bg-stone-300 px-3 py-1.5 rounded-lg font-medium">🔄 重新整理</button>
+                </div>
+                <div class="bg-white rounded-xl shadow border border-stone-200 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-amber-50 text-amber-900 border-b">
+                            <tr>
+                                <th class="p-3">編號</th>
+                                <th class="p-3">訂購內容</th>
+                                <th class="p-3">金額</th>
+                                <th class="p-3">LINE ID</th>
+                                <th class="p-3">狀態</th>
+                                <th class="p-3">時間</th>
+                                <th class="p-3 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-tbody" class="divide-y divide-stone-100">
+                            <tr><td colspan="7" class="p-4 text-center text-stone-500">載入中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 2. 會員帳號管理分頁 -->
+            <section id="tab-users" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-bold text-stone-800">所有會員列表</h2>
+                    <button onclick="loadUsers()" class="text-xs bg-stone-200 hover:bg-stone-300 px-3 py-1.5 rounded-lg font-medium">🔄 重新整理</button>
+                </div>
+                <div class="bg-white rounded-xl shadow border border-stone-200 overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-amber-50 text-amber-900 border-b">
+                            <tr>
+                                <th class="p-3">ID</th>
+                                <th class="p-3">姓名</th>
+                                <th class="p-3">電話 (帳號)</th>
+                                <th class="p-3">LINE User ID</th>
+                                <th class="p-3 text-center">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="users-tbody" class="divide-y divide-stone-100">
+                            <tr><td colspan="5" class="p-4 text-center text-stone-500">載入中...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 彈窗 Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-5 max-w-xs w-full text-center space-y-4 shadow-xl">
+            <h3 id="modal-title" class="font-bold text-lg text-amber-900"></h3>
+            <p id="modal-msg" class="text-sm text-stone-600"></p>
+            <button onclick="closeModal()" class="w-full bg-amber-800 text-white py-2 rounded-lg font-medium">確定</button>
+        </div>
+    </div>
+
+    <script>
+        // 檢查是否已驗證管理員身分
+        if (sessionStorage.getItem('admin_token')) {
+            showDashboard();
+        }
+
+        async function handleAdminLogin(e) {
+            e.preventDefault();
+            const username = document.getElementById('admin-user').value;
+            const password = document.getElementById('admin-pass').value;
+
+            try {
+                const res = await fetch('/api/admin/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    sessionStorage.setItem('admin_token', data.token);
+                    showDashboard();
+                } else {
+                    showModal('登入失敗', data.message);
+                }
+            } catch (err) {
+                showModal('錯誤', '連線伺服器失敗！');
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('login-section').classList.add('hidden');
+            document.getElementById('admin-dashboard').classList.remove('hidden');
+            loadOrders();
+            loadUsers();
+        }
+
+        function logoutAdmin() {
+            sessionStorage.removeItem('admin_token');
+            window.location.reload();
+        }
+
+        function switchTab(tab) {
+            if (tab === 'orders') {
+                document.getElementById('tab-orders').classList.remove('hidden');
+                document.getElementById('tab-users').classList.add('hidden');
+                document.getElementById('tab-orders-btn').className = "px-4 py-2 font-bold text-amber-900 border-b-2 border-amber-900";
+                document.getElementById('tab-users-btn').className = "px-4 py-2 font-bold text-stone-500 hover:text-amber-900";
+            } else {
+                document.getElementById('tab-orders').classList.add('hidden');
+                document.getElementById('tab-users').classList.remove('hidden');
+                document.getElementById('tab-users-btn').className = "px-4 py-2 font-bold text-amber-900 border-b-2 border-amber-900";
+                document.getElementById('tab-orders-btn').className = "px-4 py-2 font-bold text-stone-500 hover:text-amber-900";
+            }
+        }
+
+        // 載入訂單
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/admin/orders');
+                const orders = await res.json();
+                const tbody = document.getElementById('orders-tbody');
+                if (orders.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-stone-400">目前沒有訂單</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = orders.map(ord => `
+                    <tr class="hover:bg-stone-50">
+                        <td class="p-3 font-bold text-amber-900">#${ord.id}</td>
+                        <td class="p-3 whitespace-pre-line text-xs">${ord.items_summary}</td>
+                        <td class="p-3 font-bold text-red-600">$${ord.total_price.toLocaleString()}</td>
+                        <td class="p-3 text-xs font-mono text-stone-500">${ord.line_user_id}</td>
+                        <td class="p-3">
+                            <select onchange="updateOrderStatus(${ord.id}, this.value)" class="text-xs border rounded p-1 font-semibold bg-amber-50 border-amber-300">
+                                <option value="已收到訂單" ${ord.status === '已收到訂單' ? 'selected' : ''}>已收到訂單</option>
+                                <option value="處理中" ${ord.status === '處理中' ? 'selected' : ''}>處理中</option>
+                                <option value="已出貨" ${ord.status === '已出貨' ? 'selected' : ''}>已出貨</option>
+                                <option value="已完成" ${ord.status === '已完成' ? 'selected' : ''}>已完成</option>
+                                <option value="已取消" ${ord.status === '已取消' ? 'selected' : ''}>已取消</option>
+                            </select>
+                        </td>
+                        <td class="p-3 text-xs text-stone-400">${ord.created_at}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deleteOrder(${ord.id})" class="bg-red-500 hover:bg-red-600 text-white text-xs px-2.5 py-1 rounded transition">刪除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function updateOrderStatus(orderId, newStatus) {
+            try {
+                const res = await fetch(`/api/admin/orders/${orderId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    showModal('更新成功', result.message);
+                } else {
+                    showModal('失敗', result.message);
+                }
+            } catch (err) {
+                showModal('錯誤', '無法更新狀態');
+            }
+        }
+
+        async function deleteOrder(orderId) {
+            if (!confirm(`確定要刪除訂單 #${orderId} 嗎？`)) return;
+            try {
+                const res = await fetch(`/api/admin/orders/${orderId}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (res.ok) {
+                    showModal('已刪除', result.message, loadOrders);
+                } else {
+                    showModal('失敗', result.message);
+                }
+            } catch (err) {
+                showModal('錯誤', '刪除失敗');
+            }
+        }
+
+        // 載入會員
+        async function loadUsers() {
+            try {
+                const res = await fetch('/api/admin/users');
+                const users = await res.json();
+                const tbody = document.getElementById('users-tbody');
+                if (users.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-stone-400">目前沒有註冊會員</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = users.map(u => `
+                    <tr class="hover:bg-stone-50">
+                        <td class="p-3 font-bold text-stone-700">#${u.id}</td>
+                        <td class="p-3 font-bold text-amber-900">${u.name}</td>
+                        <td class="p-3 text-stone-700">${u.phone}</td>
+                        <td class="p-3 text-xs font-mono text-stone-500">${u.line_user_id}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="deleteUser(${u.id}, '${u.name}')" class="bg-red-500 hover:bg-red-600 text-white text-xs px-2.5 py-1 rounded transition">刪除帳號</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function deleteUser(userId, userName) {
+            if (!confirm(`確定要刪除會員「${userName}」(ID: #${userId}) 嗎？`)) return;
+            try {
+                const res = await fetch(`/api/admin/users/${userId}`, { method: 'DELETE' });
+                const result = await res.json();
+                if (res.ok) {
+                    showModal('已刪除', result.message, loadUsers);
+                } else {
+                    showModal('刪除失敗', result.message);
+                }
+            } catch (err) {
+                showModal('錯誤', '操作失敗');
+            }
+        }
+
+        function showModal(title, msg, callback) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal').classList.remove('hidden');
+            window.modalCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            if (window.modalCallback) window.modalCallback();
+        }
+    </script>
+</body>
+</html>

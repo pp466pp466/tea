@@ -79,6 +79,10 @@ LINE_LOGIN_CLIENT_ID = os.getenv('LINE_LOGIN_CLIENT_ID')
 LINE_LOGIN_CLIENT_SECRET = os.getenv('LINE_LOGIN_CLIENT_SECRET')
 LINE_LOGIN_REDIRECT_URI = os.getenv('LINE_LOGIN_REDIRECT_URI', f"{SERVER_URL}/callback/line_login")
 
+# 管理員帳號與密碼 (可於 .env 設定 ADMIN_PASSWORD)
+ADMIN_USERNAME = os.getenv('ADMIN_USERNAME', 'admin')
+ADMIN_PASSWORD = os.getenv('ADMIN_PASSWORD', 'admin123')
+
 DB_NAME = "store.db"
 
 def get_db_connection():
@@ -251,6 +255,95 @@ def orders_page():
         print(f"Render template error for /orders: {e}")
         return f"Template Error: {str(e)}", 500
 
+@app.get('/admin')
+def admin_page():
+    """管理員後台頁面"""
+    try:
+        return render_template('admin.html')
+    except Exception as e:
+        print(f"Render template error for /admin: {e}")
+        return f"Template Error: {str(e)}", 500
+
+# ==================== 管理員專用 API ====================
+
+@app.post('/api/admin/login')
+def api_admin_login():
+    data = request.json or {}
+    username = data.get('username', '').strip()
+    password = data.get('password', '').strip()
+
+    if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
+        return jsonify({"success": True, "token": "admin_authenticated"})
+    return jsonify({"success": False, "message": "管理員帳號或密碼錯誤！"}), 401
+
+@app.get('/api/admin/users')
+def api_admin_get_users():
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, line_user_id, name, phone FROM users ORDER BY id DESC')
+        users = [dict(row) for row in cursor.fetchall()]
+        return jsonify(users)
+    finally:
+        conn.close()
+
+@app.delete('/api/admin/users/<int:user_id>')
+def api_admin_delete_user(user_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM users WHERE id=?', (user_id,))
+        conn.commit()
+        return jsonify({"success": True, "message": f"成功刪除會員 ID #{user_id}"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"刪除失敗: {str(e)}"}), 500
+    finally:
+        conn.close()
+
+@app.get('/api/admin/orders')
+def api_admin_get_orders():
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, line_user_id, items_summary, total_price, status, created_at FROM orders ORDER BY id DESC')
+        orders = [dict(row) for row in cursor.fetchall()]
+        return jsonify(orders)
+    finally:
+        conn.close()
+
+@app.put('/api/admin/orders/<int:order_id>')
+def api_admin_update_order(order_id):
+    data = request.json or {}
+    status = data.get('status', '').strip()
+    if not status:
+        return jsonify({"success": False, "message": "狀態不可為空"}), 400
+
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('UPDATE orders SET status=? WHERE id=?', (status, order_id))
+        conn.commit()
+        return jsonify({"success": True, "message": "狀態更新成功！"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"更新失敗: {str(e)}"}), 500
+    finally:
+        conn.close()
+
+@app.delete('/api/admin/orders/<int:order_id>')
+def api_admin_delete_order(order_id):
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM orders WHERE id=?', (order_id,))
+        conn.commit()
+        return jsonify({"success": True, "message": f"成功刪除訂單 ID #{order_id}"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"刪除失敗: {str(e)}"}), 500
+    finally:
+        conn.close()
+
+# ========================================================
+
 @app.get('/api/prices')
 def api_prices():
     conn = get_db_connection()
@@ -353,19 +446,39 @@ def api_user_orders():
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
+        
+        # 1. 優先使用傳入的 line_user_id 查詢
         if line_user_id:
             cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (line_user_id,))
+            rows = cursor.fetchall()
+            
+            # 2. 如果用 line_user_id 查不到，嘗試用綁定該 line_user_id 的手機號碼查詢
+            if not rows:
+                cursor.execute('SELECT phone FROM users WHERE line_user_id=?', (line_user_id,))
+                u = cursor.fetchone()
+                if u and u['phone']:
+                    cursor.execute('SELECT line_user_id FROM users WHERE phone=?', (u['phone'],))
+                    all_u = cursor.fetchall()
+                    user_ids = [row['line_user_id'] for row in all_u]
+                    placeholders = ','.join(['?'] * len(user_ids))
+                    cursor.execute(f'SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id IN ({placeholders}) ORDER BY id DESC', user_ids)
+                    rows = cursor.fetchall()
+
+        # 3. 如果沒有傳 line_user_id，只傳手機號碼
         elif phone:
             cursor.execute('SELECT line_user_id FROM users WHERE phone=?', (phone,))
             u = cursor.fetchone()
             if u and u['line_user_id']:
                 cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (u['line_user_id'],))
+                rows = cursor.fetchall()
             else:
-                return jsonify([])
+                rows = []
+        
+        # 4. 若皆無，預設回傳最近的 GUEST 訂單（方便測試展示）
         else:
-            return jsonify([])
+            cursor.execute("SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id='GUEST' ORDER BY id DESC LIMIT 10")
+            rows = cursor.fetchall()
 
-        rows = cursor.fetchall()
     finally:
         conn.close()
 
