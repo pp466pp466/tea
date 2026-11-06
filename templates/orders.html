@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歷史訂單 - 茶香專賣店</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-amber-50 text-stone-800 min-h-screen pb-10">
+    <header class="bg-amber-800 text-white p-4 shadow-md flex items-center justify-between sticky top-0">
+        <h1 class="text-lg font-bold">📦 我的歷史訂單</h1>
+        <a href="/cart" class="text-xs bg-amber-700 hover:bg-amber-900 px-3 py-1.5 rounded-lg text-white font-medium">購物車</a>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-4">
+        <div id="user-info" class="bg-amber-100 p-3 rounded-xl text-xs text-amber-900 font-medium hidden"></div>
+
+        <div id="orders-list" class="space-y-3">
+            <p class="text-center text-gray-500 py-6">載入訂單紀錄中...</p>
+        </div>
+    </main>
+
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLineId = urlParams.get('line_user_id');
+        const userSession = JSON.parse(sessionStorage.getItem('user') || '{}');
+
+        async function fetchOrders() {
+            let query = '';
+            if (urlLineId) {
+                query = `?line_user_id=${urlLineId}`;
+            } else if (userSession.phone) {
+                query = `?phone=${userSession.phone}`;
+            } else {
+                document.getElementById('orders-list').innerHTML = `
+                    <div class="bg-white p-6 rounded-xl text-center shadow-sm space-y-3">
+                        <p class="text-stone-600">請先登入會員以查看歷史訂單</p>
+                        <a href="/login" class="inline-block bg-amber-800 text-white px-5 py-2 rounded-lg font-bold text-sm">前往登入</a>
+                    </div>
+                `;
+                return;
+            }
+
+            if (userSession.name) {
+                const infoDiv = document.getElementById('user-info');
+                infoDiv.innerText = `會員：${userSession.name} (${userSession.phone})`;
+                infoDiv.classList.remove('hidden');
+            }
+
+            try {
+                const res = await fetch(`/api/user/orders${query}`);
+                const orders = await res.json();
+                renderOrders(orders);
+            } catch (err) {
+                document.getElementById('orders-list').innerHTML = '<p class="text-red-500 text-center py-4">載入失敗</p>';
+            }
+        }
+
+        function renderOrders(orders) {
+            const container = document.getElementById('orders-list');
+            if (!orders || orders.length === 0) {
+                container.innerHTML = '<div class="bg-white rounded-xl p-6 text-center text-stone-500 shadow-sm">尚無任何訂單紀錄</div>';
+                return;
+            }
+
+            container.innerHTML = orders.map(ord => `
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-amber-100 space-y-2">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <span class="font-bold text-amber-900 text-sm">訂單編號 #${ord.order_id}</span>
+                        <span class="text-xs bg-amber-100 text-amber-800 font-semibold px-2 py-0.5 rounded">${ord.status}</span>
+                    </div>
+                    <p class="text-xs text-stone-600 whitespace-pre-line">${ord.items_summary}</p>
+                    <div class="flex justify-between items-center pt-1 border-t text-xs">
+                        <span class="text-stone-400">${ord.created_at}</span>
+                        <span class="text-base font-bold text-red-600">總計：$${ord.total_price.toLocaleString()} 元</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        fetchOrders();
+    </script>
+</body>
+</html>

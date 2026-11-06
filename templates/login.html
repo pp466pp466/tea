@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>會員登入 - 茶香專賣店</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-amber-50 text-stone-800 min-h-screen flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-5 border border-amber-100">
+        <h2 class="text-2xl font-bold text-center text-amber-900">🍵 會員登入</h2>
+
+        <form onsubmit="handleLogin(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold text-stone-600 mb-1">手機號碼</label>
+                <input type="tel" id="phone" placeholder="0912345678" required class="w-full border border-stone-300 rounded-lg p-2.5 focus:outline-none focus:border-amber-700 text-sm">
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold text-stone-600 mb-1">密碼</label>
+                <input type="password" id="password" required class="w-full border border-stone-300 rounded-lg p-2.5 focus:outline-none focus:border-amber-700 text-sm">
+            </div>
+
+            <button type="submit" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3 rounded-lg shadow transition">
+                登入系統
+            </button>
+        </form>
+
+        <div class="flex justify-between items-center text-xs text-stone-500 border-t pt-3">
+            <a href="/register" class="text-amber-800 font-bold hover:underline">還沒有帳號？註冊</a>
+            <a href="/cart" class="text-stone-600 hover:underline">前往購物車</a>
+        </div>
+    </div>
+
+    <!-- 彈窗 Modal -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-5 max-w-xs w-full text-center space-y-4 shadow-xl">
+            <h3 id="modal-title" class="font-bold text-lg text-amber-900"></h3>
+            <p id="modal-msg" class="text-sm text-stone-600"></p>
+            <button onclick="closeModal()" class="w-full bg-amber-800 text-white py-2 rounded-lg font-medium">確定</button>
+        </div>
+    </div>
+
+    <script>
+        async function handleLogin(e) {
+            e.preventDefault();
+            const phone = document.getElementById('phone').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, password })
+                });
+                const result = await res.json();
+                if (res.ok) {
+                    sessionStorage.setItem('user', JSON.stringify(result.user));
+                    window.location.href = '/orders';
+                } else {
+                    showModal('登入失敗', result.message);
+                }
+            } catch (err) {
+                showModal('錯誤', '網路連線異常！');
+            }
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
