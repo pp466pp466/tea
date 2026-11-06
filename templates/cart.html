@@ -3,40 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上訂購系統</title>
+    <title>購物車 - 茶香專賣店</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-amber-50 text-stone-800 font-sans min-h-screen pb-24">
+<body class="bg-amber-50 text-stone-800 font-sans min-h-screen pb-28">
     <!-- Header -->
-    <header class="bg-amber-800 text-white p-4 shadow-md text-center sticky top-0 z-10">
-        <h1 class="text-xl md:text-2xl font-bold tracking-wide">🍵 茶品線上訂購</h1>
+    <header class="bg-amber-900 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center max-w-6xl mx-auto px-4">
+        <a href="/" class="flex items-center space-x-2 text-xl font-bold">
+            <span>🍵</span> <span>茶香專賣店</span>
+        </a>
+        <div class="flex items-center space-x-4 text-xs sm:text-sm font-semibold">
+            <a href="/" class="hover:text-amber-200">首頁</a>
+            <a href="/prices" class="hover:text-amber-200">價目表</a>
+            <a href="/orders" class="hover:text-amber-200">歷史訂單</a>
+        </div>
     </header>
 
-    <main class="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-        <!-- 商品價目表區域 -->
+    <main class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+        <!-- 商品區塊 -->
         <section>
-            <h2 class="text-lg md:text-xl font-bold border-b-2 border-amber-800 pb-2 mb-4 text-amber-900">選購商品</h2>
+            <h2 class="text-xl font-bold text-amber-900 border-b-2 border-amber-800 pb-2 mb-4">選購商品</h2>
             <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <p class="text-gray-500 text-center py-4 col-span-full">載入商品中...</p>
+                <p class="text-stone-500 text-center py-4 col-span-full">載入商品中...</p>
+            </div>
+        </section>
+
+        <!-- 購物車已選清單區塊 -->
+        <section class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100 space-y-4">
+            <h2 class="text-lg font-bold text-amber-900 border-b pb-2 flex justify-between items-center">
+                <span>🛒 購物車內容</span>
+                <button onclick="clearCart()" class="text-xs text-red-500 hover:underline font-normal">清空購物車</button>
+            </h2>
+
+            <div id="cart-items" class="divide-y divide-stone-100">
+                <p class="text-stone-400 text-center py-6 text-sm">購物車目前是空的，請先挑選商品。</p>
             </div>
         </section>
     </main>
 
-    <!-- 底部購物車浮動面板 -->
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-lg">
-        <div class="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto flex items-center justify-between">
+    <!-- 底部浮動導覽與前往結帳列 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-xl z-20">
+        <div class="max-w-4xl mx-auto flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500">已選購品項: </span>
-                <span id="cart-count" class="font-bold text-amber-800">0</span> 件
-                <div class="text-lg sm:text-xl font-bold text-red-600">總計: $<span id="cart-total">0</span></div>
+                <span class="text-xs sm:text-sm text-stone-500">共選購 <span id="cart-count" class="font-bold text-amber-900">0</span> 件商品</span>
+                <div class="text-lg sm:text-xl font-bold text-red-600">總金額: $<span id="cart-total">0</span> 元</div>
             </div>
-            <button onclick="checkout()" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-6 py-2.5 rounded-lg shadow transition text-sm sm:text-base">
-                結帳下單
+            <button onclick="goToCheckout()" class="bg-amber-800 hover:bg-amber-900 text-white font-bold px-6 py-3 rounded-xl shadow transition text-sm sm:text-base active:scale-95 flex items-center space-x-1">
+                <span>前往結帳</span>
+                <i class="fa-solid font-bold">➔</i>
             </button>
         </div>
     </div>
 
-    <!-- 提示彈窗 UI (替代 alert) -->
+    <!-- 提示彈窗 UI -->
     <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
         <div class="bg-white rounded-xl p-5 max-w-xs w-full text-center space-y-4 shadow-xl">
             <h3 id="modal-title" class="font-bold text-lg text-amber-900"></h3>
@@ -47,20 +67,20 @@
 
     <script>
         let products = [];
-        let cart = {};
+        // 從 localStorage 讀取暫存的購物車內容
+        let cart = JSON.parse(localStorage.getItem('tea_cart') || '{}');
 
-        // 載入商品價目表資料
         async function fetchProducts() {
             try {
                 const res = await fetch('/api/prices');
                 products = await res.json();
                 renderProducts();
+                renderCartUI();
             } catch (err) {
                 showModal('錯誤', '無法載入商品價目表資料');
             }
         }
 
-        // 渲染商品列表
         function renderProducts() {
             const container = document.getElementById('product-list');
             if (products.length === 0) {
@@ -68,7 +88,6 @@
                 return;
             }
 
-            // 預設茶品圖片庫（可依商品類別或名稱自動對應）
             const defaultImages = {
                 '特選阿里山烏龍茶 (150g)': 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80',
                 '凍頂烏龍茶 (150g)': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&q=80',
@@ -80,28 +99,27 @@
                 const imgUrl = item.image_url || defaultImages[item.item_name] || `https://placehold.co/600x400/78350f/ffffff?text=${encodeURIComponent(item.item_name)}`;
                 
                 return `
-                <div class="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden flex flex-col justify-between hover:shadow-md transition duration-300">
+                <div class="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden flex flex-col justify-between hover:shadow-md transition">
                     <div class="relative aspect-video bg-stone-100 overflow-hidden">
                         <img src="${imgUrl}" 
                              alt="${item.item_name}" 
                              onerror="this.onerror=null;this.src='https://placehold.co/600x400/78350f/ffffff?text=${encodeURIComponent(item.item_name)}';" 
                              class="w-full h-full object-cover">
-                        <span class="absolute top-2 left-2 text-xs bg-amber-900/80 text-white px-2 py-0.5 rounded-md backdrop-blur-sm font-medium">${item.category}</span>
+                        <span class="absolute top-2 left-2 text-xs bg-amber-900/80 text-white px-2 py-0.5 rounded-md">${item.category}</span>
                     </div>
                     <div class="p-4 flex flex-col justify-between flex-grow space-y-3">
                         <div>
-                            <h3 class="font-bold text-stone-800 text-base md:text-lg">${item.item_name}</h3>
-                            <p class="text-amber-700 font-extrabold mt-1 text-base md:text-lg">${item.price}</p>
+                            <h3 class="font-bold text-stone-800 text-sm md:text-base">${item.item_name}</h3>
+                            <p class="text-amber-700 font-extrabold mt-1 text-sm md:text-base">${item.price}</p>
                         </div>
-                        <button onclick="addToCart(${item.id})" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-semibold px-3 py-2.5 rounded-xl text-sm transition shadow-sm flex items-center justify-center space-x-1">
-                            <span>+ 加入購物車</span>
+                        <button onclick="addToCart(${item.id})" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-semibold px-3 py-2 rounded-xl text-xs sm:text-sm transition shadow-sm active:scale-95">
+                            + 加入購物車
                         </button>
                     </div>
                 </div>
             `}).join('');
         }
 
-        // 加入購物車 logic
         function addToCart(id) {
             const product = products.find(p => p.id === id);
             if (!product) return;
@@ -109,32 +127,81 @@
             if (cart[id]) {
                 cart[id].qty += 1;
             } else {
-                // 拆解價格數字 (例如: "$600 元" -> 600)
                 const numericPrice = parseInt(product.price.replace(/[^\d]/g, '')) || 0;
                 cart[id] = { ...product, numericPrice, qty: 1 };
             }
-            updateCartUI();
+            saveCart();
+            renderCartUI();
         }
 
-        // 更新購物車 UI
-        function updateCartUI() {
+        function updateQty(id, delta) {
+            if (!cart[id]) return;
+            cart[id].qty += delta;
+            if (cart[id].qty <= 0) {
+                delete cart[id];
+            }
+            saveCart();
+            renderCartUI();
+        }
+
+        function removeItem(id) {
+            delete cart[id];
+            saveCart();
+            renderCartUI();
+        }
+
+        function clearCart() {
+            cart = {};
+            saveCart();
+            renderCartUI();
+        }
+
+        function saveCart() {
+            localStorage.setItem('tea_cart', JSON.stringify(cart));
+        }
+
+        function renderCartUI() {
+            const container = document.getElementById('cart-items');
+            const items = Object.values(cart);
+
             let totalQty = 0;
             let totalPrice = 0;
 
-            Object.values(cart).forEach(item => {
-                totalQty += item.qty;
-                totalPrice += item.numericPrice * item.qty;
-            });
+            if (items.length === 0) {
+                container.innerHTML = '<p class="text-stone-400 text-center py-6 text-sm">購物車目前是空的，請先將喜歡的茶品加入購物車！</p>';
+            } else {
+                container.innerHTML = items.map(item => {
+                    totalQty += item.qty;
+                    totalPrice += item.numericPrice * item.qty;
+                    return `
+                    <div class="py-3 flex items-center justify-between gap-3 text-xs sm:text-sm">
+                        <div class="flex-grow">
+                            <h4 class="font-bold text-stone-800">${item.item_name}</h4>
+                            <p class="text-stone-500 font-semibold">$${item.numericPrice} 元 / 件</p>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button onclick="updateQty(${item.id}, -1)" class="w-7 h-7 bg-stone-100 rounded-lg flex items-center justify-center font-bold text-stone-600 hover:bg-stone-200">-</button>
+                            <span class="font-bold w-6 text-center">${item.qty}</span>
+                            <button onclick="updateQty(${item.id}, 1)" class="w-7 h-7 bg-amber-100 rounded-lg flex items-center justify-center font-bold text-amber-900 hover:bg-amber-200">+</button>
+                        </div>
+                        <div class="text-right min-w-[70px]">
+                            <span class="font-bold text-red-600 block">$${(item.numericPrice * item.qty).toLocaleString()}</span>
+                            <button onclick="removeItem(${item.id})" class="text-stone-400 text-xs hover:text-red-500">刪除</button>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
 
             document.getElementById('cart-count').innerText = totalQty;
             document.getElementById('cart-total').innerText = totalPrice.toLocaleString();
         }
 
-        // 結帳功能
-        async function checkout() {
-            const totalQty = parseInt(document.getElementById('cart-count').innerText);
-            if (totalQty === 0) {
-                showModal('提示', '購物車是空的，請先選擇商品！');
+        // 轉址前往結帳頁面 (Checkout)
+        function goToCheckout() {
+            const items = Object.values(cart);
+            if (items.length === 0) {
+                showModal('提示', '您的購物車是空的，請先加入商品！');
                 return;
             }
 
@@ -143,45 +210,15 @@
             const urlParams = new URLSearchParams(window.location.search);
             const lineUserId = userSession.line_user_id || urlParams.get('line_user_id') || '';
 
-            // 若沒有登入資料 (無手機號碼或 LINE User ID)，引導至登入/註冊頁面
             if (!userSession.phone && !lineUserId) {
-                showModal('需要先登入', '請先登入或註冊會員帳號，才能完成下單結帳！', () => {
+                showModal('需要先登入', '請先登入或註冊會員帳號，才能前往結帳！', () => {
                     window.location.href = '/login';
                 });
                 return;
             }
 
-            const itemsSummary = Object.values(cart)
-                .map(i => `${i.item_name} x ${i.qty}`)
-                .join('\n');
-
-            const totalPrice = parseInt(document.getElementById('cart-total').innerText.replace(/,/g, '')) || 0;
-
-            try {
-                const res = await fetch('/api/checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        line_user_id: lineUserId,
-                        items_summary: itemsSummary,
-                        total_price: totalPrice
-                    })
-                });
-
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    showModal('訂購成功', `已成功下單！共 ${totalQty} 件商品，總金額為 $${totalPrice.toLocaleString()} 元。`, () => {
-                        // 帶上 line_user_id 轉址前往歷史訂單頁面
-                        window.location.href = `/orders${lineUserId ? '?line_user_id=' + lineUserId : ''}`;
-                    });
-                    cart = {};
-                    updateCartUI();
-                } else {
-                    showModal('下單失敗', data.message || '請重試！');
-                }
-            } catch (err) {
-                showModal('錯誤', '網路連線異常！');
-            }
+            // 轉址至結帳頁面
+            window.location.href = `/checkout${lineUserId ? '?line_user_id=' + lineUserId : ''}`;
         }
 
         function showModal(title, msg, callback) {

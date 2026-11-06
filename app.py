@@ -174,6 +174,24 @@ def index():
 def cart_page():
     return render_template('cart.html')
 
+@app.get('/checkout')
+def checkout_page():
+    """新增獨立的結帳頁面"""
+    try:
+        return render_template('checkout.html')
+    except Exception as e:
+        print(f"Render template error for /checkout: {e}")
+        return f"Template Error: {str(e)}", 500
+
+@app.get('/prices')
+def prices_page():
+    """價格與服務項目展示網頁"""
+    try:
+        return render_template('prices.html')
+    except Exception as e:
+        print(f"Render template error for /prices: {e}")
+        return f"Template Error: {str(e)}", 500
+
 @app.get('/register')
 def register_page():
     try:

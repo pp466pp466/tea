@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>結帳下單 - 茶香專賣店</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-amber-50 text-stone-800 min-h-screen pb-12">
+    <!-- Header -->
+    <header class="bg-amber-900 text-white p-4 shadow-md sticky top-0 z-10 flex justify-between items-center max-w-3xl mx-auto px-4">
+        <h1 class="text-lg font-bold">💳 訂單結帳</h1>
+        <a href="/cart" class="text-xs bg-amber-800 hover:bg-amber-950 px-3 py-1.5 rounded-lg border border-amber-700">返回購物車</a>
+    </header>
+
+    <main class="max-w-3xl mx-auto p-4 sm:p-6 space-y-6">
+        <!-- 訂單品項摘要 -->
+        <section class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100 space-y-3">
+            <h2 class="text-base font-bold text-amber-900 border-b pb-2">📋 訂單摘要</h2>
+            <div id="checkout-items" class="divide-y divide-stone-100 text-xs sm:text-sm">
+                <!-- 動態注入購物車內容 -->
+            </div>
+            <div class="flex justify-between items-center pt-3 border-t font-bold text-base text-stone-900">
+                <span>總計付款金額：</span>
+                <span class="text-xl text-red-600">$<span id="checkout-total">0</span> 元</span>
+            </div>
+        </section>
+
+        <!-- 選擇付款與取貨方式 -->
+        <section class="bg-white rounded-2xl p-5 shadow-sm border border-amber-100 space-y-4">
+            <h2 class="text-base font-bold text-amber-900 border-b pb-2">💳 選擇付款與取貨方式</h2>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label class="border-2 border-amber-800 bg-amber-50/50 rounded-xl p-3 flex flex-col items-center cursor-pointer transition text-center payment-card" onclick="selectPayment('credit')">
+                    <input type="radio" name="payment" value="線上刷卡付款" checked class="hidden">
+                    <span class="text-2xl mb-1">💳</span>
+                    <span class="font-bold text-sm">線上刷卡付款</span>
+                </label>
+
+                <label class="border border-stone-200 rounded-xl p-3 flex flex-col items-center cursor-pointer transition text-center payment-card" onclick="selectPayment('cod')">
+                    <input type="radio" name="payment" value="貨到付款" class="hidden">
+                    <span class="text-2xl mb-1">🚚</span>
+                    <span class="font-bold text-sm">貨到付款</span>
+                </label>
+
+                <label class="border border-stone-200 rounded-xl p-3 flex flex-col items-center cursor-pointer transition text-center payment-card" onclick="selectPayment('store')">
+                    <input type="radio" name="payment" value="到店取貨付款" class="hidden">
+                    <span class="text-2xl mb-1">🏪</span>
+                    <span class="font-bold text-sm">到店取貨付款</span>
+                </label>
+            </div>
+
+            <!-- 動態表單：線上刷卡資訊 -->
+            <div id="credit-form" class="space-y-3 pt-2 bg-stone-50 p-4 rounded-xl border border-stone-200 text-xs sm:text-sm">
+                <h4 class="font-bold text-stone-700">請輸入信用卡資訊 (測試環境安全)</h4>
+                <div>
+                    <label class="block text-stone-600 mb-1">卡號</label>
+                    <input type="text" placeholder="4563 •••• •••• 1234" maxlength="19" class="w-full border rounded-lg p-2 bg-white focus:outline-none focus:border-amber-800 font-mono">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-stone-600 mb-1">有效期限 (MM/YY)</label>
+                        <input type="text" placeholder="12/28" maxlength="5" class="w-full border rounded-lg p-2 bg-white focus:outline-none focus:border-amber-800 font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-stone-600 mb-1">安全碼 (CVV)</label>
+                        <input type="password" placeholder="123" maxlength="4" class="w-full border rounded-lg p-2 bg-white focus:outline-none focus:border-amber-800 font-mono">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 動態表單：貨到付款收件地址 -->
+            <div id="cod-form" class="hidden space-y-3 pt-2 bg-stone-50 p-4 rounded-xl border border-stone-200 text-xs sm:text-sm">
+                <h4 class="font-bold text-stone-700">請填寫宅配收件地址</h4>
+                <div>
+                    <label class="block text-stone-600 mb-1">收件地址</label>
+                    <input type="text" id="address-input" placeholder="請輸入完整的收件地址" class="w-full border rounded-lg p-2 bg-white focus:outline-none focus:border-amber-800">
+                </div>
+            </div>
+
+            <!-- 動態表單：到店取貨門市 -->
+            <div id="store-form" class="hidden space-y-3 pt-2 bg-stone-50 p-4 rounded-xl border border-stone-200 text-xs sm:text-sm">
+                <h4 class="font-bold text-stone-700">選擇取貨門市</h4>
+                <select id="store-select" class="w-full border rounded-lg p-2 bg-white focus:outline-none focus:border-amber-800 font-medium">
+                    <option value="台北旗艦店 (台北市大安區信義路二段 1 號)">台北旗艦店 (台北市大安區信義路二段 1 號)</option>
+                    <option value="台中概念店 (台中市西區公益路 100 號)">台中概念店 (台中市西區公益路 100 號)</option>
+                    <option value="高雄門市 (高雄市左營區博愛二路 88 號)">高雄門市 (高雄市左營區博愛二路 88 號)</option>
+                </select>
+            </div>
+        </section>
+
+        <!-- 確認下單按鈕 -->
+        <button onclick="submitOrder()" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-bold py-3.5 rounded-xl shadow-lg transition text-base active:scale-95">
+            確認並送出訂單
+        </button>
+    </main>
+
+    <!-- 提示彈窗 UI -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-5 max-w-xs w-full text-center space-y-4 shadow-xl">
+            <h3 id="modal-title" class="font-bold text-lg text-amber-900"></h3>
+            <p id="modal-msg" class="text-sm text-stone-600"></p>
+            <button onclick="closeModal()" class="w-full bg-amber-800 text-white py-2 rounded-lg font-medium">確定</button>
+        </div>
+    </div>
+
+    <script>
+        const cart = JSON.parse(localStorage.getItem('tea_cart') || '{}');
+        const items = Object.values(cart);
+        let selectedPaymentType = '線上刷卡付款';
+
+        function initCheckoutUI() {
+            const container = document.getElementById('checkout-items');
+            if (items.length === 0) {
+                showModal('提示', '購物車是空的，即將返回購物車', () => {
+                    window.location.href = '/cart';
+                });
+                return;
+            }
+
+            let total = 0;
+            container.innerHTML = items.map(i => {
+                const subtotal = i.numericPrice * i.qty;
+                total += subtotal;
+                return `
+                <div class="py-2.5 flex justify-between items-center">
+                    <div>
+                        <span class="font-bold text-stone-800">${i.item_name}</span>
+                        <span class="text-stone-500 text-xs ml-2">x ${i.qty}</span>
+                    </div>
+                    <span class="font-bold text-amber-900">$${subtotal.toLocaleString()} 元</span>
+                </div>
+                `;
+            }).join('');
+
+            document.getElementById('checkout-total').innerText = total.toLocaleString();
+        }
+
+        function selectPayment(type) {
+            const cards = document.querySelectorAll('.payment-card');
+            cards.forEach(c => {
+                c.classList.remove('border-2', 'border-amber-800', 'bg-amber-50/50');
+                c.classList.add('border-stone-200');
+            });
+
+            document.getElementById('credit-form').classList.add('hidden');
+            document.getElementById('cod-form').classList.add('hidden');
+            document.getElementById('store-form').classList.add('hidden');
+
+            if (type === 'credit') {
+                selectedPaymentType = '線上刷卡付款';
+                cards[0].classList.add('border-2', 'border-amber-800', 'bg-amber-50/50');
+                document.getElementById('credit-form').classList.remove('hidden');
+            } else if (type === 'cod') {
+                selectedPaymentType = '貨到付款';
+                cards[1].classList.add('border-2', 'border-amber-800', 'bg-amber-50/50');
+                document.getElementById('cod-form').classList.remove('hidden');
+            } else if (type === 'store') {
+                selectedPaymentType = '到店取貨付款';
+                cards[2].classList.add('border-2', 'border-amber-800', 'bg-amber-50/50');
+                document.getElementById('store-form').classList.remove('hidden');
+            }
+        }
+
+        async function submitOrder() {
+            const userSession = JSON.parse(sessionStorage.getItem('user') || '{}');
+            const urlParams = new URLSearchParams(window.location.search);
+            const lineUserId = userSession.line_user_id || urlParams.get('line_user_id') || '';
+
+            let details = `【付款方式】: ${selectedPaymentType}`;
+            if (selectedPaymentType === '貨到付款') {
+                const addr = document.getElementById('address-input').value.trim();
+                if (!addr) {
+                    showModal('提示', '請填寫貨到付款的收件地址！');
+                    return;
+                }
+                details += ` (地址: ${addr})`;
+            } else if (selectedPaymentType === '到店取貨付款') {
+                const store = document.getElementById('store-select').value;
+                details += ` (門市: ${store})`;
+            }
+
+            const itemsSummary = items.map(i => `${i.item_name} x ${i.qty}`).join('\n') + `\n${details}`;
+            const totalPrice = parseInt(document.getElementById('checkout-total').innerText.replace(/,/g, '')) || 0;
+
+            try {
+                const res = await fetch('/api/checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        line_user_id: lineUserId,
+                        items_summary: itemsSummary,
+                        total_price: totalPrice
+                    })
+                });
+
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    showModal('訂購成功', `已完成下單 (${selectedPaymentType})！`, () => {
+                        localStorage.removeItem('tea_cart'); // 下單成功後清空購物車
+                        window.location.href = `/orders${lineUserId ? '?line_user_id=' + lineUserId : ''}`;
+                    });
+                } else {
+                    showModal('下單失敗', data.message || '請重試！');
+                }
+            } catch (err) {
+                showModal('錯誤', '網路連線異常！');
+            }
+        }
+
+        function showModal(title, msg, callback) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal').classList.remove('hidden');
+            window.modalCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            if (window.modalCallback) window.modalCallback();
+        }
+
+        initCheckoutUI();
+    </script>
+</body>
+</html>
