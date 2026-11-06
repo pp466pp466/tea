@@ -42,6 +42,12 @@ handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
 DB_NAME = "store.db"
 
+def get_db_connection():
+    """取得帶有 10 秒超時管制的 SQLite 連線"""
+    conn = sqlite3.connect(DB_NAME, timeout=10)
+    conn.row_factory = sqlite3.Row
+    return conn
+
 # 設定外網 URL
 SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
 
@@ -58,34 +64,39 @@ SYSTEM_INSTRUCTION = """
 
 def get_services_from_db():
     """從 SQLite 讀取所有服務項目"""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT title, description FROM services')
-    rows = cursor.fetchall()
-    conn.close()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT title, description FROM services')
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
 
     if not rows:
         return "目前尚無服務項目資訊。"
 
     msg_lines = ["【 服務項目 】\n"]
-    for idx, (title, desc) in enumerate(rows, 1):
-        msg_lines.append(f"{idx}. {title}\n   說明：{desc}\n")
+    for idx, row in enumerate(rows, 1):
+        msg_lines.append(f"{idx}. {row['title']}\n   說明：{row['description']}\n")
     return "\n".join(msg_lines).strip()
 
 def get_prices_from_db():
     """從 SQLite 讀取所有價目表並加上訂購連結"""
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT category, item_name, price FROM prices ORDER BY category')
-    rows = cursor.fetchall()
-    conn.close()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT category, item_name, price FROM prices ORDER BY category')
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
 
     if not rows:
         return f"目前尚無價目表資訊。\n\n👉 前往訂購：\n{SERVER_URL}/cart"
 
     msg_lines = ["【 產品與服務價目表 】\n"]
     current_cat = None
-    for category, item_name, price in rows:
+    for row in rows:
+        category, item_name, price = row['category'], row['item_name'], row['price']
         if category != current_cat:
             current_cat = category
             msg_lines.append(f"\n◈ {current_cat} ◈")
@@ -129,21 +140,22 @@ def orders_page():
 
 @app.get('/api/prices')
 def api_prices():
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, category, item_name, price FROM prices')
-    rows = cursor.fetchall()
-    conn.close()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, category, item_name, price FROM prices')
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
 
     products = [
-        {"id": r[0], "category": r[1], "item_name": r[2], "price": r[3]}
+        {"id": r['id'], "category": r['category'], "item_name": r['item_name'], "price": r['price']}
         for r in rows
     ]
     return jsonify(products)
 
 @app.post('/api/register')
 def api_register():
-    create_and_seed_db()  # 確保資料表結構存在
     data = request.json or {}
     line_user_id = data.get('line_user_id', '').strip()
     name = data.get('name', '').strip()
@@ -153,41 +165,44 @@ def api_register():
     if not line_user_id or not name or not phone or not password:
         return jsonify({"success": False, "message": "所有欄位皆為必填！"}), 400
 
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
+    conn = get_db_connection()
     try:
+        cursor = conn.cursor()
         cursor.execute('''
             INSERT INTO users (line_user_id, name, phone, password)
             VALUES (?, ?, ?, ?)
         ''', (line_user_id, name, phone, password))
         conn.commit()
-        conn.close()
         return jsonify({"success": True, "message": "註冊成功！"})
     except sqlite3.IntegrityError:
-        conn.close()
         return jsonify({"success": False, "message": "該 LINE User ID 或電話已被註冊！"}), 400
+    except Exception as e:
+        return jsonify({"success": False, "message": f"伺服器錯誤: {str(e)}"}), 500
+    finally:
+        conn.close()
 
 @app.post('/api/login')
 def api_login():
-    create_and_seed_db()  # 確保資料表結構存在
     data = request.json or {}
     phone = data.get('phone', '').strip()
     password = data.get('password', '').strip()
 
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('SELECT id, line_user_id, name, phone FROM users WHERE phone=? AND password=?', (phone, password))
-    user = cursor.fetchone()
-    conn.close()
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('SELECT id, line_user_id, name, phone FROM users WHERE phone=? AND password=?', (phone, password))
+        user = cursor.fetchone()
+    finally:
+        conn.close()
 
     if user:
         return jsonify({
             "success": True,
             "user": {
-                "id": user[0],
-                "line_user_id": user[1],
-                "name": user[2],
-                "phone": user[3]
+                "id": user['id'],
+                "line_user_id": user['line_user_id'],
+                "name": user['name'],
+                "phone": user['phone']
             }
         })
     else:
@@ -195,7 +210,6 @@ def api_login():
 
 @app.post('/api/checkout')
 def api_checkout():
-    create_and_seed_db()  # 確保資料表結構存在
     data = request.json or {}
     line_user_id = data.get('line_user_id', '').strip()
     total_price = data.get('total_price', 0)
@@ -204,51 +218,51 @@ def api_checkout():
     if not items_summary:
         return jsonify({"success": False, "message": "購物車不能為空！"}), 400
 
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO orders (line_user_id, items_summary, total_price, status)
-        VALUES (?, ?, ?, ?)
-    ''', (line_user_id if line_user_id else 'GUEST', items_summary, total_price, '已收到訂單'))
-    conn.commit()
-    conn.close()
-
-    return jsonify({"success": True, "message": "下單成功！"})
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO orders (line_user_id, items_summary, total_price, status)
+            VALUES (?, ?, ?, ?)
+        ''', (line_user_id if line_user_id else 'GUEST', items_summary, total_price, '已收到訂單'))
+        conn.commit()
+        return jsonify({"success": True, "message": "下單成功！"})
+    except Exception as e:
+        return jsonify({"success": False, "message": f"下單失敗: {str(e)}"}), 500
+    finally:
+        conn.close()
 
 @app.get('/api/user/orders')
 def api_user_orders():
-    create_and_seed_db()  # 確保資料表結構存在
     phone = request.args.get('phone', '').strip()
     line_user_id = request.args.get('line_user_id', '').strip()
 
-    conn = sqlite3.connect(DB_NAME)
-    cursor = conn.cursor()
-    
-    # 支援使用 LINE User ID 或 Phone 查詢歷史訂單
-    if line_user_id:
-        cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (line_user_id,))
-    elif phone:
-        cursor.execute('SELECT line_user_id FROM users WHERE phone=?', (phone,))
-        u = cursor.fetchone()
-        if u and u[0]:
-            cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (u[0],))
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        if line_user_id:
+            cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (line_user_id,))
+        elif phone:
+            cursor.execute('SELECT line_user_id FROM users WHERE phone=?', (phone,))
+            u = cursor.fetchone()
+            if u and u['line_user_id']:
+                cursor.execute('SELECT id, items_summary, total_price, status, created_at FROM orders WHERE line_user_id=? ORDER BY id DESC', (u['line_user_id'],))
+            else:
+                return jsonify([])
         else:
-            conn.close()
             return jsonify([])
-    else:
-        conn.close()
-        return jsonify([])
 
-    rows = cursor.fetchall()
-    conn.close()
+        rows = cursor.fetchall()
+    finally:
+        conn.close()
 
     orders = [
         {
-            "order_id": r[0],
-            "items_summary": r[1],
-            "total_price": r[2],
-            "status": r[3],
-            "created_at": r[4]
+            "order_id": r['id'],
+            "items_summary": r['items_summary'],
+            "total_price": r['total_price'],
+            "status": r['status'],
+            "created_at": r['created_at']
         }
         for r in rows
     ]
