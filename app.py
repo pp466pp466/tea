@@ -71,6 +71,11 @@ app = Flask(__name__, template_folder='templates')
 configuration = Configuration(access_token=os.getenv('LINE_CHANNEL_ACCESS_TOKEN'))
 handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
+# LINE Login 設定變數
+LINE_LOGIN_CLIENT_ID = os.getenv('LINE_LOGIN_CLIENT_ID')
+LINE_LOGIN_CLIENT_SECRET = os.getenv('LINE_LOGIN_CLIENT_SECRET')
+LINE_LOGIN_REDIRECT_URI = os.getenv('LINE_LOGIN_REDIRECT_URI', f"{SERVER_URL}/callback/line_login")
+
 DB_NAME = "store.db"
 
 def get_db_connection():
@@ -159,15 +164,89 @@ def cart_page():
 
 @app.get('/register')
 def register_page():
-    return render_template('register.html')
+    try:
+        return render_template('register.html')
+    except Exception as e:
+        print(f"Render template error for /register: {e}")
+        return f"Template Error: {str(e)}", 500
 
 @app.get('/login')
 def login_page():
-    return render_template('login.html')
+    try:
+        return render_template('login.html')
+    except Exception as e:
+        print(f"Render template error for /login: {e}")
+        return f"Template Error: {str(e)}", 500
+
+@app.get('/api/line_login_url')
+def get_line_login_url():
+    """產生 LINE Login 授權連結"""
+    if not LINE_LOGIN_CLIENT_ID:
+        return jsonify({"success": False, "message": "尚未設定 LINE_LOGIN_CLIENT_ID"}), 400
+    
+    auth_url = (
+        f"https://access.line.me/oauth2/v2.1/authorize?"
+        f"response_type=code&"
+        f"client_id={LINE_LOGIN_CLIENT_ID}&"
+        f"redirect_uri={LINE_LOGIN_REDIRECT_URI}&"
+        f"state=random_state_string&"
+        f"scope=profile%20openid"
+    )
+    return jsonify({"success": True, "auth_url": auth_url})
+
+@app.get('/callback/line_login')
+def callback_line_login():
+    """處理 LINE Login 授權回傳 (Code -> ID Token)"""
+    code = request.args.get('code')
+    if not code:
+        return "LINE Auth Failed: No Code", 400
+
+    # 1. 用 Code 換取 Access Token & ID Token
+    token_url = "https://api.line.me/oauth2/v2.1/token"
+    headers = {'Content-Type': 'application/x-www-form-urlencoded'}
+    data = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': LINE_LOGIN_REDIRECT_URI,
+        'client_id': LINE_LOGIN_CLIENT_ID,
+        'client_secret': LINE_LOGIN_CLIENT_SECRET
+    }
+    
+    token_res = requests.post(token_url, headers=headers, data=data).json()
+    id_token = token_res.get('id_token')
+
+    if not id_token:
+        return "LINE Login Token Error", 400
+
+    # 2. 解碼 ID Token 取得 line_user_id (sub) 與 display_name (name)
+    verify_url = "https://api.line.me/oauth2/v2.1/verify"
+    verify_data = {
+        'id_token': id_token,
+        'client_id': LINE_LOGIN_CLIENT_ID
+    }
+    user_info = requests.post(verify_url, data=verify_data).json()
+
+    line_user_id = user_info.get('sub')
+    display_name = user_info.get('name', 'LINE User')
+
+    # 3. 重導向至註冊頁面並帶入 LINE 資訊
+    return f"""
+    <script>
+        sessionStorage.setItem('line_auth', JSON.stringify({{
+            line_user_id: "{line_user_id}",
+            display_name: "{display_name}"
+        }}));
+        window.location.href = '/register';
+    </script>
+    """
 
 @app.get('/orders')
 def orders_page():
-    return render_template('orders.html')
+    try:
+        return render_template('orders.html')
+    except Exception as e:
+        print(f"Render template error for /orders: {e}")
+        return f"Template Error: {str(e)}", 500
 
 @app.get('/api/prices')
 def api_prices():

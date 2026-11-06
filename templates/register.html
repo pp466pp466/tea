@@ -11,14 +11,26 @@
         <h2 class="text-2xl font-bold text-center text-amber-900">🍵 會員註冊綁定</h2>
         <p class="text-xs text-center text-stone-500">將您的電話與 LINE 帳號進行綁定</p>
 
+        <!-- LINE 快捷認證按鈕 -->
+        <button type="button" onclick="loginWithLINE()" class="w-full bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-2.5 rounded-lg shadow flex items-center justify-center space-x-2 transition">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 4.269 8.846 10.036 9.608.391.084.922.258 1.057.592.121.303.079.778.039 1.085l-.171 1.027c-.053.303-.242 1.186 1.039.647 1.281-.54 6.911-4.069 9.428-6.967 1.739-1.907 2.572-3.844 2.572-5.992z"/></svg>
+            <span>使用 LINE 快速授權填入資訊</span>
+        </button>
+
+        <div class="relative flex py-1 items-center">
+            <div class="flex-grow border-t border-stone-200"></div>
+            <span class="flex-shrink mx-3 text-xs text-stone-400">或確認資料</span>
+            <div class="flex-grow border-t border-stone-200"></div>
+        </div>
+
         <form id="reg-form" onsubmit="handleRegister(event)" class="space-y-4">
             <div>
-                <label class="block text-xs font-semibold text-stone-600 mb-1">LINE User ID (必填)</label>
-                <input type="text" id="line_user_id" required class="w-full border border-stone-300 rounded-lg p-2.5 bg-gray-50 focus:outline-none focus:border-amber-700 text-sm font-mono">
+                <label class="block text-xs font-semibold text-stone-600 mb-1">LINE User ID (系統自動帶入)</label>
+                <input type="text" id="line_user_id" readonly required class="w-full border border-stone-300 rounded-lg p-2.5 bg-gray-100 text-stone-500 focus:outline-none text-sm font-mono">
             </div>
 
             <div>
-                <label class="block text-xs font-semibold text-stone-600 mb-1">姓名</label>
+                <label class="block text-xs font-semibold text-stone-600 mb-1">LINE 顯示名稱 / 姓名</label>
                 <input type="text" id="name" placeholder="請輸入姓名" required class="w-full border border-stone-300 rounded-lg p-2.5 focus:outline-none focus:border-amber-700 text-sm">
             </div>
 
@@ -52,11 +64,27 @@
     </div>
 
     <script>
-        // 自動抓取網址中的 line_user_id 參數
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlLineId = urlParams.get('line_user_id');
-        if (urlLineId) {
-            document.getElementById('line_user_id').value = urlLineId;
+        // 自動載入 Session 中的 LINE Login 資訊
+        const lineAuth = JSON.parse(sessionStorage.getItem('line_auth') || '{}');
+        if (lineAuth.line_user_id) {
+            document.getElementById('line_user_id').value = lineAuth.line_user_id;
+        }
+        if (lineAuth.display_name) {
+            document.getElementById('name').value = lineAuth.display_name;
+        }
+
+        async function loginWithLINE() {
+            try {
+                const res = await fetch('/api/line_login_url');
+                const data = await res.json();
+                if (data.success) {
+                    window.location.href = data.auth_url;
+                } else {
+                    showModal('LINE 登入失敗', data.message);
+                }
+            } catch (err) {
+                showModal('錯誤', '無法取得 LINE 登入連結');
+            }
         }
 
         async function handleRegister(e) {
