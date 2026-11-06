@@ -133,13 +133,13 @@
             const line_user_id = urlParams.get('line_user_id') || localStorage.getItem('line_user_id') || 'GUEST';
 
             try {
-                const res = await fetch('/api/orders', {
+                const res = await fetch('/api/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         line_user_id: line_user_id,
-                        items: items.join(', '),
-                        total: total
+                        items_summary: items.join(', '), // 注意後端接收的參數名稱是 items_summary
+                        total_price: parseInt(total)     // 總金額傳送數字型態
                     })
                 });
 
