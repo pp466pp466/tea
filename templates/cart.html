@@ -68,18 +68,37 @@
                 return;
             }
 
-            container.innerHTML = products.map(item => `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-amber-100 flex flex-col justify-between space-y-3 hover:shadow-md transition">
-                    <div>
-                        <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">${item.category}</span>
-                        <h3 class="font-bold text-stone-800 mt-2 text-base md:text-lg">${item.item_name}</h3>
-                        <p class="text-amber-700 font-bold mt-1 text-sm md:text-base">${item.price}</p>
+            // 預設茶品圖片庫（可依商品類別或名稱自動對應）
+            const defaultImages = {
+                '特選阿里山烏龍茶 (150g)': 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80',
+                '凍頂烏龍茶 (150g)': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&q=80',
+                '日月潭紅玉紅茶 (100g)': 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=600&q=80',
+                '雙罐高山茶禮盒': 'https://images.unsplash.com/photo-1563822249510-04678c787dd2?auto=format&fit=crop&w=600&q=80'
+            };
+
+            container.innerHTML = products.map(item => {
+                const imgUrl = item.image_url || defaultImages[item.item_name] || `https://placehold.co/600x400/78350f/ffffff?text=${encodeURIComponent(item.item_name)}`;
+                
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden flex flex-col justify-between hover:shadow-md transition duration-300">
+                    <div class="relative aspect-video bg-stone-100 overflow-hidden">
+                        <img src="${imgUrl}" 
+                             alt="${item.item_name}" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/600x400/78350f/ffffff?text=${encodeURIComponent(item.item_name)}';" 
+                             class="w-full h-full object-cover">
+                        <span class="absolute top-2 left-2 text-xs bg-amber-900/80 text-white px-2 py-0.5 rounded-md backdrop-blur-sm font-medium">${item.category}</span>
                     </div>
-                    <button onclick="addToCart(${item.id})" class="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-3 py-2 rounded-lg text-sm transition">
-                        + 加入購物車
-                    </button>
+                    <div class="p-4 flex flex-col justify-between flex-grow space-y-3">
+                        <div>
+                            <h3 class="font-bold text-stone-800 text-base md:text-lg">${item.item_name}</h3>
+                            <p class="text-amber-700 font-extrabold mt-1 text-base md:text-lg">${item.price}</p>
+                        </div>
+                        <button onclick="addToCart(${item.id})" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-semibold px-3 py-2.5 rounded-xl text-sm transition shadow-sm flex items-center justify-center space-x-1">
+                            <span>+ 加入購物車</span>
+                        </button>
+                    </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
 
         // 加入購物車 logic
