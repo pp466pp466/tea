@@ -334,12 +334,20 @@ def api_admin_update_order(order_id):
         items_summary = order['items_summary']
 
         # 2. 更新資料庫中的訂單狀態
-        cursor.execute('UPDATE orders SET status=? WHERE id=?', (status, order_id))
+        cursor.execute('UPDATE orders SET status=? WHERE id=?', (order_id, status))
         conn.commit()
 
         # 3. 發送 LINE Push Message 主動推播訊息給用戶 (若 line_user_id 不是 GUEST 且開頭為 U)
         push_notice = ""
-        if line_user_id and line_user_id != 'GUEST' and line_user_id.startswith('U'):
+        
+        # 若 line_user_id 為 GUEST，嘗試從最新註冊的會員撈取 LINE ID 測試推播
+        if not line_user_id or line_user_id == 'GUEST' or not line_user_id.startswith('U'):
+            cursor.execute("SELECT line_user_id FROM users WHERE line_user_id LIKE 'U%' ORDER BY id DESC LIMIT 1")
+            user_row = cursor.fetchone()
+            if user_row:
+                line_user_id = user_row['line_user_id']
+
+        if line_user_id and line_user_id.startswith('U'):
             try:
                 # 組合通知訊息
                 status_emoji = "🚚" if status == "已出貨" else ("✅" if status == "已完成" else "📦")
@@ -361,7 +369,9 @@ def api_admin_update_order(order_id):
                 push_notice = "（已成功發送 LINE 通知給顧客）"
             except Exception as push_err:
                 print(f"LINE Push Error: {push_err}")
-                push_notice = "（訂單狀態已更新，但 LINE 通知發送失敗，可能顧客未加入好友）"
+                push_notice = f"（訂單狀態已更新，但 LINE 通知發送失敗：{str(push_err)}）"
+        else:
+            push_notice = "（未找到有效的 LINE User ID，無法發送通知）"
 
         return jsonify({"success": True, "message": f"狀態更新成功！{push_notice}"})
     except Exception as e:

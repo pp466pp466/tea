@@ -9,28 +9,28 @@
 <body class="bg-amber-50 text-stone-800 font-sans min-h-screen pb-24">
     <!-- Header -->
     <header class="bg-amber-800 text-white p-4 shadow-md text-center sticky top-0 z-10">
-        <h1 class="text-xl font-bold tracking-wide">🍵 茶品線上訂購</h1>
+        <h1 class="text-xl md:text-2xl font-bold tracking-wide">🍵 茶品線上訂購</h1>
     </header>
 
-    <main class="max-w-md mx-auto p-4 space-y-6">
+    <main class="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto p-4 md:p-6 space-y-6">
         <!-- 商品價目表區域 -->
         <section>
-            <h2 class="text-lg font-bold border-b-2 border-amber-800 pb-2 mb-3 text-amber-900">選購商品</h2>
-            <div id="product-list" class="space-y-3">
-                <p class="text-gray-500 text-center py-4">載入商品中...</p>
+            <h2 class="text-lg md:text-xl font-bold border-b-2 border-amber-800 pb-2 mb-4 text-amber-900">選購商品</h2>
+            <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-gray-500 text-center py-4 col-span-full">載入商品中...</p>
             </div>
         </section>
     </main>
 
     <!-- 底部購物車浮動面板 -->
     <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-lg">
-        <div class="max-w-md mx-auto flex items-center justify-between">
+        <div class="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto flex items-center justify-between">
             <div>
-                <span class="text-sm text-gray-500">已選購 items: </span>
+                <span class="text-sm text-gray-500">已選購品項: </span>
                 <span id="cart-count" class="font-bold text-amber-800">0</span> 件
-                <div class="text-lg font-bold text-red-600">總計: $<span id="cart-total">0</span></div>
+                <div class="text-lg sm:text-xl font-bold text-red-600">總計: $<span id="cart-total">0</span></div>
             </div>
-            <button onclick="checkout()" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-6 py-2.5 rounded-lg shadow transition">
+            <button onclick="checkout()" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-6 py-2.5 rounded-lg shadow transition text-sm sm:text-base">
                 結帳下單
             </button>
         </div>
@@ -64,18 +64,18 @@
         function renderProducts() {
             const container = document.getElementById('product-list');
             if (products.length === 0) {
-                container.innerHTML = '<p class="text-stone-500 text-center py-4">目前沒有提供商品。</p>';
+                container.innerHTML = '<p class="text-stone-500 text-center py-4 col-span-full">目前沒有提供商品。</p>';
                 return;
             }
 
             container.innerHTML = products.map(item => `
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-amber-100 flex items-center justify-between">
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-amber-100 flex flex-col justify-between space-y-3 hover:shadow-md transition">
                     <div>
                         <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">${item.category}</span>
-                        <h3 class="font-bold text-stone-800 mt-1">${item.item_name}</h3>
-                        <p class="text-amber-700 font-bold mt-1">${item.price}</p>
+                        <h3 class="font-bold text-stone-800 mt-2 text-base md:text-lg">${item.item_name}</h3>
+                        <p class="text-amber-700 font-bold mt-1 text-sm md:text-base">${item.price}</p>
                     </div>
-                    <button onclick="addToCart(${item.id})" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-3 py-1.5 rounded-lg text-sm transition">
+                    <button onclick="addToCart(${item.id})" class="w-full bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-3 py-2 rounded-lg text-sm transition">
                         + 加入購物車
                     </button>
                 </div>
