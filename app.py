@@ -161,7 +161,7 @@ def on_text(event):
     else:
         try:
             response = gemini_client.models.generate_content(
-                model="gemini-2.5-flash",
+                model="gemini-3.5-flash-lite",
                 contents=command,
                 config={
                     "system_instruction": SYSTEM_INSTRUCTION,
