@@ -5,7 +5,7 @@ DB_NAME = "store.db"
 
 def create_and_seed_db():
     """建立資料庫結構並寫入初始測試資料 (若不存在時才寫入)"""
-    conn = sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME, timeout=10)
     cursor = conn.cursor()
 
     # 1. 建立服務項目資料表 (services)
@@ -50,12 +50,14 @@ def create_and_seed_db():
         )
     ''')
 
+    conn.commit()
+
     # 檢查是否已有資料，無資料才注入初始預設值
     cursor.execute('SELECT COUNT(*) FROM services')
     if cursor.fetchone()[0] == 0:
         services_data = [
             ('嚴選高山茶葉', '來自阿里山與杉林溪高海拔茶區，堅持手採嫩葉與職人烘焙。'),
-            ('茶道體驗體驗課', '專業茶師指導，學習沖泡技巧、品茶禮儀與茶藝文化。'),
+            ('茶道體驗體驗課', '專業茶師指導，學習沖泡技巧、品茶禮禮與茶藝文化。'),
             ('客製化禮盒包裝', '專為企業送禮與節慶設計，提供質感茶葉禮盒封套客製服務。')
         ]
         cursor.executemany('INSERT INTO services (title, description) VALUES (?, ?)', services_data)
@@ -76,4 +78,4 @@ def create_and_seed_db():
 
 if __name__ == '__main__':
     create_and_seed_db()
-    print("SQLite 資料庫已成功檢查並初始化！")
+    print("SQLite 資料庫已成功檢查並補齊 users 與 orders 表格！")
