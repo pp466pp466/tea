@@ -33,6 +33,37 @@ load_dotenv()
 # 自動確保 SQLite 資料庫與表格已建立
 create_and_seed_db()
 
+def ensure_tables_exist():
+    """強制確保 users 與 orders 表格存在，防止連線舊 DB 時報錯 500"""
+    conn = sqlite3.connect("store.db", timeout=10)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            line_user_id TEXT UNIQUE NOT NULL,
+            name TEXT NOT NULL,
+            phone TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS orders (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            line_user_id TEXT NOT NULL,
+            items_summary TEXT NOT NULL,
+            total_price INTEGER NOT NULL,
+            status TEXT DEFAULT '已收到訂單',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+try:
+    ensure_tables_exist()
+except Exception as e:
+    print(f"Init Table Error: {e}")
+
 # 初始化 Flask (指定 template 資料夾)
 app = Flask(__name__, template_folder='templates')
 
