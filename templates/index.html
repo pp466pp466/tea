@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>茶香專賣店 - 精選茶品與線上訂購</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-amber-50 text-stone-800 font-sans min-h-screen flex flex-col justify-between">
+    <!-- 頂部導覽列 -->
+    <header class="bg-amber-900 text-white shadow-lg sticky top-0 z-20">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex justify-between items-center">
+            <a href="/" class="flex items-center space-x-2">
+                <span class="text-2xl">🍵</span>
+                <span class="text-xl sm:text-2xl font-bold tracking-wide">茶香專賣店</span>
+            </a>
+            <nav class="hidden md:flex space-x-6 text-sm font-semibold">
+                <a href="#about" class="hover:text-amber-200 transition">關於我們</a>
+                <a href="#showcase" class="hover:text-amber-200 transition">茶品集</a>
+                <a href="/cart" class="hover:text-amber-200 transition">線上訂購</a>
+                <a href="/orders" class="hover:text-amber-200 transition">歷史訂單</a>
+                <a href="/login" class="hover:text-amber-200 transition">會員登入</a>
+            </nav>
+            <div class="md:hidden flex items-center space-x-2">
+                <a href="/cart" class="bg-amber-700 hover:bg-amber-800 text-white text-xs px-3 py-1.5 rounded-lg shadow font-medium">🛒 訂購</a>
+                <a href="/login" class="bg-amber-800 hover:bg-amber-950 text-white text-xs px-3 py-1.5 rounded-lg border border-amber-700">登入</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主視覺區 Hero Section -->
+    <section class="bg-gradient-to-b from-amber-900 to-amber-800 text-white py-12 sm:py-20 px-4 text-center">
+        <div class="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+            <span class="inline-block bg-amber-700/60 text-amber-100 text-xs sm:text-sm px-3.5 py-1 rounded-full border border-amber-600">職人嚴選 · 高山手採茶</span>
+            <h1 class="text-3xl sm:text-5xl font-extrabold leading-tight tracking-wide">品味一口來自高山的純粹甘甜</h1>
+            <p class="text-amber-100/90 text-sm sm:text-lg max-w-xl mx-auto">
+                從阿里山、杉林溪到日月潭，我們堅持為您呈現最純正的台灣茶韻與極致工藝。
+            </p>
+            <div class="pt-2 flex flex-col sm:flex-row justify-center items-center gap-3">
+                <a href="/cart" class="w-full sm:w-auto bg-amber-500 hover:bg-amber-600 text-amber-950 font-bold px-8 py-3 rounded-xl shadow-lg transition text-base">
+                    🍵 前往線上選購
+                </a>
+                <a href="/register" class="w-full sm:w-auto bg-stone-800 hover:bg-stone-900 text-white font-semibold px-6 py-3 rounded-xl border border-stone-700 shadow transition text-base">
+                    綁定 LINE 註冊會員
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <main class="max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-16 space-y-12 sm:space-y-20 flex-grow">
+        <!-- 品牌簡介 -->
+        <section id="about" class="text-center max-w-2xl mx-auto space-y-3">
+            <h2 class="text-2xl sm:text-3xl font-bold text-amber-900">傳承職人烘焙精神</h2>
+            <div class="w-12 h-1 bg-amber-800 mx-auto rounded-full"></div>
+            <p class="text-stone-600 text-sm sm:text-base leading-relaxed pt-2">
+                每款茶葉均經過多次嚴格評測與精準火候掌控。我們相信，好的茶不只能順喉甘醇，更能溫暖每一位品茶者的日常生活。
+            </p>
+        </section>
+
+        <!-- 茶品集 (Showcase Image Gallery) -->
+        <section id="showcase" class="space-y-6 sm:space-y-8">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-end border-b border-stone-300 pb-3 gap-2">
+                <div>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-amber-900">🍵 精選茶品集</h2>
+                    <p class="text-stone-500 text-xs sm:text-sm mt-1">您可以隨時更換 `src` 圖片網址以替換成自己的茶品照片</p>
+                </div>
+                <a href="/cart" class="text-amber-800 font-bold text-xs sm:text-sm hover:underline flex items-center">
+                    查看價目並下單 &rarr;
+                </a>
+            </div>
+
+            <!-- RWD 網格布局 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                <!-- 茶品卡片 1 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col">
+                    <div class="relative aspect-video sm:aspect-square bg-stone-100 overflow-hidden">
+                        <!-- 請在此替換您的圖片網址 -->
+                        <img src="https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=800&q=80" 
+                             alt="阿里山烏龍茶" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/800x600/78350f/ffffff?text=阿里山烏龍茶';" 
+                             class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                        <span class="absolute top-3 left-3 bg-amber-900/80 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">高山烏龍</span>
+                    </div>
+                    <div class="p-5 flex flex-col justify-between flex-grow space-y-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-stone-900">阿里山高冷烏龍茶</h3>
+                            <p class="text-stone-500 text-xs sm:text-sm mt-1 leading-relaxed">
+                                產自海峽 1500 公尺高海拔山區，葉肉厚實，帶有濃郁山頭氣與蘭花幽香。
+                            </p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-stone-100">
+                            <span class="text-amber-900 font-extrabold text-base sm:text-lg">$600 / 150g</span>
+                            <a href="/cart" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">+ 加入選購</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 茶品卡片 2 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col">
+                    <div class="relative aspect-video sm:aspect-square bg-stone-100 overflow-hidden">
+                        <!-- 請在此替換您的圖片網址 -->
+                        <img src="https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=800&q=80" 
+                             alt="日月潭紅玉紅茶" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/800x600/78350f/ffffff?text=日月潭紅玉紅茶';" 
+                             class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                        <span class="absolute top-3 left-3 bg-red-900/80 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">經典紅茶</span>
+                    </div>
+                    <div class="p-5 flex flex-col justify-between flex-grow space-y-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-stone-900">日月潭紅玉紅茶 (台茶18號)</h3>
+                            <p class="text-stone-500 text-xs sm:text-sm mt-1 leading-relaxed">
+                                天然肉桂香與淡淡薄荷香氣，茶湯清醇紅潤，甘甜不苦澀。
+                            </p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-stone-100">
+                            <span class="text-amber-900 font-extrabold text-base sm:text-lg">$480 / 100g</span>
+                            <a href="/cart" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">+ 加入選購</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 茶品卡片 3 -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col">
+                    <div class="relative aspect-video sm:aspect-square bg-stone-100 overflow-hidden">
+                        <!-- 請在此替換您的圖片網址 -->
+                        <img src="https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=800&q=80" 
+                             alt="凍頂烏龍茶" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/800x600/78350f/ffffff?text=凍頂烏龍茶';" 
+                             class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                        <span class="absolute top-3 left-3 bg-amber-800/80 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">濃香焙火</span>
+                    </div>
+                    <div class="p-5 flex flex-col justify-between flex-grow space-y-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-stone-900">傳統凍頂烏龍茶</h3>
+                            <p class="text-stone-500 text-xs sm:text-sm mt-1 leading-relaxed">
+                                中度發酵與中火焙烘，帶有豐潤米香與熟果香，喉韻十分持久。
+                            </p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-stone-100">
+                            <span class="text-amber-900 font-extrabold text-base sm:text-lg">$550 / 150g</span>
+                            <a href="/cart" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">+ 加入選購</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 茶品卡片 4 (禮盒組) -->
+                <div class="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden hover:shadow-lg transition duration-300 flex flex-col">
+                    <div class="relative aspect-video sm:aspect-square bg-stone-100 overflow-hidden">
+                        <!-- 請在此替換您的圖片網址 -->
+                        <img src="https://images.unsplash.com/photo-1563822249510-04678c787dd2?auto=format&fit=crop&w=800&q=80" 
+                             alt="雙罐高山茶禮盒" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/800x600/78350f/ffffff?text=雙罐高山茶禮盒';" 
+                             class="w-full h-full object-cover hover:scale-105 transition duration-500">
+                        <span class="absolute top-3 left-3 bg-amber-950/80 text-white text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">年節尊榮</span>
+                    </div>
+                    <div class="p-5 flex flex-col justify-between flex-grow space-y-3">
+                        <div>
+                            <h3 class="text-lg font-bold text-stone-900">雙罐尊榮高山茶禮盒</h3>
+                            <p class="text-stone-500 text-xs sm:text-sm mt-1 leading-relaxed">
+                                精選特級烏龍與紅玉茶葉雙罐組合，附贈專屬質感禮帶與祝福卡。
+                            </p>
+                        </div>
+                        <div class="flex items-center justify-between pt-3 border-t border-stone-100">
+                            <span class="text-amber-900 font-extrabold text-base sm:text-lg">$1,280 / 組</span>
+                            <a href="/cart" class="bg-amber-100 hover:bg-amber-200 text-amber-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">+ 加入選購</a>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer 頁尾 -->
+    <footer class="bg-stone-900 text-stone-400 py-8 px-4 text-center text-xs sm:text-sm space-y-3">
+        <p class="text-stone-300 font-medium">🍵 茶香專賣店 · 嚴選台灣好茶</p>
+        <div class="flex justify-center space-x-4 text-stone-400 text-xs">
+            <a href="/cart" class="hover:text-amber-200">線上訂購</a>
+            <a href="/orders" class="hover:text-amber-200">訂單查詢</a>
+            <a href="/admin" class="hover:text-amber-200">後台管理</a>
+        </div>
+        <p class="text-stone-500 text-xs pt-2 border-t border-stone-800 max-w-md mx-auto">
+            &copy; 2026 茶香專賣店 All Rights Reserved.
+        </p>
+    </footer>
+</body>
+</html>

@@ -164,7 +164,11 @@ def reply_text(reply_token, text, quick_reply=None):
 
 @app.get('/')
 def index():
-    return 'status:ok'
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        print(f"Render template error for /: {e}")
+        return f"Template Error: {str(e)}", 500
 
 @app.get('/cart')
 def cart_page():
