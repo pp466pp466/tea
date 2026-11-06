@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上訂購系統</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-amber-50 text-stone-800 font-sans min-h-screen pb-24">
+    <!-- Header -->
+    <header class="bg-amber-800 text-white p-4 shadow-md text-center sticky top-0 z-10">
+        <h1 class="text-xl font-bold tracking-wide">🍵 茶品線上訂購</h1>
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-6">
+        <!-- 商品價目表區域 -->
+        <section>
+            <h2 class="text-lg font-bold border-b-2 border-amber-800 pb-2 mb-3 text-amber-900">選購商品</h2>
+            <div id="product-list" class="space-y-3">
+                <p class="text-gray-500 text-center py-4">載入商品中...</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- 底部購物車浮動面板 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-lg">
+        <div class="max-w-md mx-auto flex items-center justify-between">
+            <div>
+                <span class="text-sm text-gray-500">已選購 items: </span>
+                <span id="cart-count" class="font-bold text-amber-800">0</span> 件
+                <div class="text-lg font-bold text-red-600">總計: $<span id="cart-total">0</span></div>
+            </div>
+            <button onclick="checkout()" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-6 py-2.5 rounded-lg shadow transition">
+                結帳下單
+            </button>
+        </div>
+    </div>
+
+    <!-- 提示彈窗 UI (替代 alert) -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-5 max-w-xs w-full text-center space-y-4 shadow-xl">
+            <h3 id="modal-title" class="font-bold text-lg text-amber-900"></h3>
+            <p id="modal-msg" class="text-sm text-stone-600"></p>
+            <button onclick="closeModal()" class="w-full bg-amber-800 text-white py-2 rounded-lg font-medium">確定</button>
+        </div>
+    </div>
+
+    <script>
+        let products = [];
+        let cart = {};
+
+        // 載入商品價目表資料
+        async function fetchProducts() {
+            try {
+                const res = await fetch('/api/prices');
+                products = await res.json();
+                renderProducts();
+            } catch (err) {
+                showModal('錯誤', '無法載入商品價目表資料');
+            }
+        }
+
+        // 渲染商品列表
+        function renderProducts() {
+            const container = document.getElementById('product-list');
+            if (products.length === 0) {
+                container.innerHTML = '<p class="text-stone-500 text-center py-4">目前沒有提供商品。</p>';
+                return;
+            }
+
+            container.innerHTML = products.map(item => `
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-amber-100 flex items-center justify-between">
+                    <div>
+                        <span class="text-xs bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">${item.category}</span>
+                        <h3 class="font-bold text-stone-800 mt-1">${item.item_name}</h3>
+                        <p class="text-amber-700 font-bold mt-1">${item.price}</p>
+                    </div>
+                    <button onclick="addToCart(${item.id})" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-3 py-1.5 rounded-lg text-sm transition">
+                        + 加入購物車
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        // 加入購物車 logic
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            if (cart[id]) {
+                cart[id].qty += 1;
+            } else {
+                // 拆解價格數字 (例如: "$600 元" -> 600)
+                const numericPrice = parseInt(product.price.replace(/[^\d]/g, '')) || 0;
+                cart[id] = { ...product, numericPrice, qty: 1 };
+            }
+            updateCartUI();
+        }
+
+        // 更新購物車 UI
+        function updateCartUI() {
+            let totalQty = 0;
+            let totalPrice = 0;
+
+            Object.values(cart).forEach(item => {
+                totalQty += item.qty;
+                totalPrice += item.numericPrice * item.qty;
+            });
+
+            document.getElementById('cart-count').innerText = totalQty;
+            document.getElementById('cart-total').innerText = totalPrice.toLocaleString();
+        }
+
+        // 結帳功能
+        function checkout() {
+            const totalQty = parseInt(document.getElementById('cart-count').innerText);
+            if (totalQty === 0) {
+                showModal('提示', '購物車是空的，請先選擇商品！');
+                return;
+            }
+            showModal('訂購成功', `已成功下單！共 ${totalQty} 件商品，總金額為 $${document.getElementById('cart-total').innerText} 元。專人將盡快與您聯繫！`);
+            cart = {};
+            updateCartUI();
+        }
+
+        function showModal(title, msg) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal').classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+        }
+
+        fetchProducts();
+    </script>
+</body>
+</html>
