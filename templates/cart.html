@@ -3,161 +3,200 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>線上訂購 - 茶品專賣</title>
+    <title>線上訂購系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-amber-50/30 min-h-screen text-slate-800 flex flex-col justify-between">
-    <div>
-        <!-- 導覽列 -->
-        <nav class="bg-amber-900 text-amber-100 shadow-md">
-            <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div class="flex items-center space-x-3">
-                    <span class="text-2xl">🍵</span>
-                    <h1 class="text-xl font-bold tracking-wide">茶品線上訂購</h1>
-                </div>
-                <div class="flex flex-wrap justify-center gap-4 text-sm font-medium">
-                    <a href="/" class="hover:text-white transition">首頁</a>
-                    <a href="/prices" class="hover:text-white transition">價目表</a>
-                    <a href="/orders" class="hover:text-white transition">歷史訂單</a>
-                </div>
-            </div>
-        </nav>
+<body class="bg-amber-50 text-stone-800 font-sans min-h-screen pb-24">
+    <!-- Header -->
+    <header class="bg-amber-800 text-white p-4 shadow-md text-center sticky top-0 z-10">
+        <h1 class="text-xl md:text-2xl font-bold tracking-wide">🍵 茶品線上訂購</h1>
+    </header>
 
-        <!-- 主內容區 -->
-        <main class="max-w-6xl mx-auto px-4 py-8">
-            <h2 class="text-2xl font-bold mb-6 text-amber-900 border-b border-amber-200 pb-2">選購商品</h2>
-            
-            <!-- 商品卡片列表 (動態渲染) -->
-            <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- JS 自動填入商品 -->
+    <main class="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+        <!-- 商品價目表區域 -->
+        <section>
+            <h2 class="text-lg md:text-xl font-bold border-b-2 border-amber-800 pb-2 mb-4 text-amber-900">選購商品</h2>
+            <div id="product-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="text-gray-500 text-center py-4 col-span-full">載入商品中...</p>
             </div>
+        </section>
+    </main>
 
-            <!-- 結帳浮動列 -->
-            <div class="mt-8 bg-white p-6 rounded-2xl shadow-lg flex flex-col sm:flex-row justify-between items-center gap-4 sticky bottom-4 border border-amber-100">
-                <div>
-                    <span class="text-slate-500 text-sm">已選購品項：</span>
-                    <span id="cart-count" class="font-bold text-slate-800">0</span> 件
-                    <div class="text-xl font-bold text-amber-900 mt-1">
-                        總計: <span id="cart-total" class="text-red-600">0</span> 元
-                    </div>
-                </div>
-                <button onclick="submitOrder()" class="w-full sm:w-auto bg-amber-800 hover:bg-amber-900 text-white font-bold px-8 py-3 rounded-xl shadow transition transform active:scale-95">
-                    結帳下單
-                </button>
+    <!-- 底部購物車浮動面板 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-stone-200 p-4 shadow-lg">
+        <div class="max-w-md sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto flex items-center justify-between">
+            <div>
+                <span class="text-sm text-gray-500">已選購品項: </span>
+                <span id="cart-count" class="font-bold text-amber-800">0</span> 件
+                <div class="text-lg sm:text-xl font-bold text-red-600">總計: $<span id="cart-total">0</span></div>
             </div>
-        </main>
+            <button onclick="checkout()" class="bg-amber-700 hover:bg-amber-800 text-white font-bold px-6 py-2.5 rounded-lg shadow transition text-sm sm:text-base">
+                結帳下單
+            </button>
+        </div>
     </div>
 
-    <!-- 頁尾 -->
-    <footer class="bg-slate-900 text-slate-400 py-6 text-center text-sm mt-12">
-        <p>&copy; 2026 茶品線上訂購系統. All rights reserved.</p>
-    </footer>
+    <!-- 提示彈窗 UI (替代 alert) -->
+    <div id="modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-xl p-5 max-w-xs w-full text-center space-y-4 shadow-xl">
+            <h3 id="modal-title" class="font-bold text-lg text-amber-900"></h3>
+            <p id="modal-msg" class="text-sm text-stone-600"></p>
+            <button onclick="closeModal()" class="w-full bg-amber-800 text-white py-2 rounded-lg font-medium">確定</button>
+        </div>
+    </div>
 
     <script>
-        // 商品資料 (包含圖片連結與備援圖片)
-        const products = [
-            { id: 1, name: '特選阿里山烏龍茶 (150g)', price: 600, category: '茶葉類', image: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500' },
-            { id: 2, name: '凍頂烏龍茶 (150g)', price: 550, category: '茶葉類', image: 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?w=500' },
-            { id: 3, name: '日月潭紅玉紅茶 (100g)', price: 480, category: '茶葉類', image: 'https://images.unsplash.com/photo-1594631252845-29fc4cc86de9?w=500' },
-            { id: 4, name: '雙罐高山茶禮盒', price: 1280, category: '禮盒類', image: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?w=500' },
-            { id: 5, name: '一對一茶藝體驗課 (90min)', price: 1200, category: '體驗課程', image: 'https://images.unsplash.com/photo-1563822249510-04678c78fa85?w=500' }
-        ];
-
+        let products = [];
         let cart = {};
 
-        // 渲染商品列表 (含圖片)
+        // 載入商品價目表資料
+        async function fetchProducts() {
+            try {
+                const res = await fetch('/api/prices');
+                products = await res.json();
+                renderProducts();
+            } catch (err) {
+                showModal('錯誤', '無法載入商品價目表資料');
+            }
+        }
+
+        // 渲染商品列表
         function renderProducts() {
             const container = document.getElementById('product-list');
-            container.innerHTML = products.map(p => `
-                <div class="bg-white rounded-2xl shadow-md overflow-hidden border border-amber-100 flex flex-col justify-between hover:shadow-lg transition">
-                    <div class="relative h-48 bg-amber-100 overflow-hidden">
-                        <img src="${p.image}" 
-                             alt="${p.name}" 
-                             onerror="this.onerror=null;this.src='https://images.unsplash.com/photo-1576092768241-dec231879fc3?w=500';"
-                             class="w-full h-full object-cover transform hover:scale-105 transition duration-500">
-                        <span class="absolute top-3 left-3 bg-amber-900/80 text-amber-100 text-xs px-2.5 py-1 rounded-full backdrop-blur-sm">
-                            ${p.category}
-                        </span>
-                    </div>
-                    <div class="p-5 flex-1 flex flex-col justify-between">
-                        <div>
-                            <h3 class="font-bold text-lg text-slate-800 mb-1">${p.name}</h3>
-                            <div class="text-amber-900 font-bold text-xl mb-4">$${p.price} <span class="text-xs text-slate-400 font-normal">元</span></div>
-                        </div>
-                        <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
-                            <button onclick="updateQty(${p.id}, -1)" class="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-100 active:bg-slate-200 transition font-bold">-</button>
-                            <span id="qty-${p.id}" class="font-bold text-slate-700 w-8 text-center">0</span>
-                            <button onclick="updateQty(${p.id}, 1)" class="w-9 h-9 rounded-lg bg-amber-800 text-white flex items-center justify-center hover:bg-amber-900 active:scale-95 transition font-bold">+</button>
-                        </div>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function updateQty(id, delta) {
-            cart[id] = (cart[id] || 0) + delta;
-            if (cart[id] <= 0) delete cart[id];
-            
-            document.getElementById(`qty-${id}`).innerText = cart[id] || 0;
-            updateSummary();
-        }
-
-        function updateSummary() {
-            let count = 0;
-            let total = 0;
-            for (let id in cart) {
-                const item = products.find(p => p.id == id);
-                if (item) {
-                    count += cart[id];
-                    total += cart[id] * item.price;
-                }
-            }
-            document.getElementById('cart-count').innerText = count;
-            document.getElementById('cart-total').innerText = total;
-        }
-
-        async function submitOrder() {
-            const items = Object.keys(cart).map(id => {
-                const p = products.find(prod => prod.id == id);
-                return `${p.name} x ${cart[id]}`;
-            });
-
-            if (items.length === 0) {
-                alert('請先選擇商品！');
+            if (products.length === 0) {
+                container.innerHTML = '<p class="text-stone-500 text-center py-4 col-span-full">目前沒有提供商品。</p>';
                 return;
             }
 
-            const total = document.getElementById('cart-total').innerText;
+            // 預設茶品圖片庫（可依商品類別或名稱自動對應）
+            const defaultImages = {
+                '特選阿里山烏龍茶 (150g)': 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=600&q=80',
+                '凍頂烏龍茶 (150g)': 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=600&q=80',
+                '日月潭紅玉紅茶 (100g)': 'https://images.unsplash.com/photo-1597481499750-3e6b22637e12?auto=format&fit=crop&w=600&q=80',
+                '雙罐高山茶禮盒': 'https://images.unsplash.com/photo-1563822249510-04678c787dd2?auto=format&fit=crop&w=600&q=80'
+            };
+
+            container.innerHTML = products.map(item => {
+                const imgUrl = item.image_url || defaultImages[item.item_name] || `https://placehold.co/600x400/78350f/ffffff?text=${encodeURIComponent(item.item_name)}`;
+                
+                return `
+                <div class="bg-white rounded-2xl shadow-sm border border-amber-100 overflow-hidden flex flex-col justify-between hover:shadow-md transition duration-300">
+                    <div class="relative aspect-video bg-stone-100 overflow-hidden">
+                        <img src="${imgUrl}" 
+                             alt="${item.item_name}" 
+                             onerror="this.onerror=null;this.src='https://placehold.co/600x400/78350f/ffffff?text=${encodeURIComponent(item.item_name)}';" 
+                             class="w-full h-full object-cover">
+                        <span class="absolute top-2 left-2 text-xs bg-amber-900/80 text-white px-2 py-0.5 rounded-md backdrop-blur-sm font-medium">${item.category}</span>
+                    </div>
+                    <div class="p-4 flex flex-col justify-between flex-grow space-y-3">
+                        <div>
+                            <h3 class="font-bold text-stone-800 text-base md:text-lg">${item.item_name}</h3>
+                            <p class="text-amber-700 font-extrabold mt-1 text-base md:text-lg">${item.price}</p>
+                        </div>
+                        <button onclick="addToCart(${item.id})" class="w-full bg-amber-800 hover:bg-amber-900 text-white font-semibold px-3 py-2.5 rounded-xl text-sm transition shadow-sm flex items-center justify-center space-x-1">
+                            <span>+ 加入購物車</span>
+                        </button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        // 加入購物車 logic
+        function addToCart(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            if (cart[id]) {
+                cart[id].qty += 1;
+            } else {
+                // 拆解價格數字 (例如: "$600 元" -> 600)
+                const numericPrice = parseInt(product.price.replace(/[^\d]/g, '')) || 0;
+                cart[id] = { ...product, numericPrice, qty: 1 };
+            }
+            updateCartUI();
+        }
+
+        // 更新購物車 UI
+        function updateCartUI() {
+            let totalQty = 0;
+            let totalPrice = 0;
+
+            Object.values(cart).forEach(item => {
+                totalQty += item.qty;
+                totalPrice += item.numericPrice * item.qty;
+            });
+
+            document.getElementById('cart-count').innerText = totalQty;
+            document.getElementById('cart-total').innerText = totalPrice.toLocaleString();
+        }
+
+        // 結帳功能
+        async function checkout() {
+            const totalQty = parseInt(document.getElementById('cart-count').innerText);
+            if (totalQty === 0) {
+                showModal('提示', '購物車是空的，請先選擇商品！');
+                return;
+            }
+
+            // 檢查會員登入狀態
+            const userSession = JSON.parse(sessionStorage.getItem('user') || '{}');
             const urlParams = new URLSearchParams(window.location.search);
-            const line_user_id = urlParams.get('line_user_id') || localStorage.getItem('line_user_id') || 'GUEST';
+            const lineUserId = userSession.line_user_id || urlParams.get('line_user_id') || '';
+
+            // 若沒有登入資料 (無手機號碼或 LINE User ID)，引導至登入/註冊頁面
+            if (!userSession.phone && !lineUserId) {
+                showModal('需要先登入', '請先登入或註冊會員帳號，才能完成下單結帳！', () => {
+                    window.location.href = '/login';
+                });
+                return;
+            }
+
+            const itemsSummary = Object.values(cart)
+                .map(i => `${i.item_name} x ${i.qty}`)
+                .join('\n');
+
+            const totalPrice = parseInt(document.getElementById('cart-total').innerText.replace(/,/g, '')) || 0;
 
             try {
                 const res = await fetch('/api/checkout', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        line_user_id: line_user_id,
-                        items_summary: items.join(', '), // 注意後端接收的參數名稱是 items_summary
-                        total_price: parseInt(total)     // 總金額傳送數字型態
+                        line_user_id: lineUserId,
+                        items_summary: itemsSummary,
+                        total_price: totalPrice
                     })
                 });
 
                 const data = await res.json();
-                if (data.success) {
-                    alert('訂單建立成功！');
+                if (res.ok && data.success) {
+                    showModal('訂購成功', `已成功下單！共 ${totalQty} 件商品，總金額為 $${totalPrice.toLocaleString()} 元。`, () => {
+                        // 帶上 line_user_id 轉址前往歷史訂單頁面
+                        window.location.href = `/orders${lineUserId ? '?line_user_id=' + lineUserId : ''}`;
+                    });
                     cart = {};
-                    renderProducts();
-                    updateSummary();
+                    updateCartUI();
                 } else {
-                    alert('訂單建立失敗：' + (data.message || '未知錯誤'));
-}
+                    showModal('下單失敗', data.message || '請重試！');
+                }
             } catch (err) {
-                alert('網路連線異常');
+                showModal('錯誤', '網路連線異常！');
             }
         }
 
-        renderProducts();
+        function showModal(title, msg, callback) {
+            document.getElementById('modal-title').innerText = title;
+            document.getElementById('modal-msg').innerText = msg;
+            document.getElementById('modal').classList.remove('hidden');
+            window.modalCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById('modal').classList.add('hidden');
+            if (window.modalCallback) window.modalCallback();
+        }
+
+        fetchProducts();
     </script>
 </body>
 </html>
