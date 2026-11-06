@@ -3,6 +3,7 @@ import requests
 from pathlib import Path
 import os
 import sqlite3
+import threading
 from dotenv import load_dotenv
 from google import genai
 from init_db import create_and_seed_db
@@ -37,7 +38,7 @@ handler = WebhookHandler(os.getenv('LINE_CHANNEL_SECRET'))
 
 DB_NAME = "store.db"
 
-# 設定外網 URL（會優先讀取 .env 的 SERVER_URL）
+# 設定外網 URL
 SERVER_URL = os.getenv('SERVER_URL', 'http://localhost:5000')
 
 # 初始化 Google GenAI Client
@@ -86,7 +87,6 @@ def get_prices_from_db():
             msg_lines.append(f"\n◈ {current_cat} ◈")
         msg_lines.append(f" • {item_name}：{price}")
 
-    # 附帶線上訂購網頁連結
     msg_lines.append(f"\n👉 前往訂購：\n{SERVER_URL}/cart")
 
     return "\n".join(msg_lines)
@@ -99,7 +99,7 @@ def reply_text(reply_token, text, quick_reply=None):
                 reply_token=reply_token,
                 messages=[TextMessage(text=text, quick_reply=quick_reply)]
             ),
-            _request_timeout=(2, 5)
+            _request_timeout=(3, 10)
         )
 
 @app.get('/')
@@ -108,12 +108,10 @@ def index():
 
 @app.get('/cart')
 def cart_page():
-    """購物車線上訂購頁面"""
     return render_template('cart.html')
 
 @app.get('/api/prices')
 def api_prices():
-    """提供前端購物車網頁查詢價目表的 JSON API"""
     conn = sqlite3.connect(DB_NAME)
     cursor = conn.cursor()
     cursor.execute('SELECT id, category, item_name, price FROM prices')
@@ -130,9 +128,10 @@ def api_prices():
 def callback():
     signature = request.headers.get('X-Line-Signature')
     body = request.get_data(as_text=True)
-    print(body)
+    
     try:
-        handler.handle(body, signature)
+        # 使用背景線程非同步處理事件，讓 Flask 立刻回傳 OK 避開 LINE 5秒逾時
+        threading.Thread(target=handler.handle, args=(body, signature)).start()
     except InvalidSignatureError:
         abort(400)
     return 'OK'
@@ -160,9 +159,7 @@ def on_text(event):
         reply_text(event.reply_token, '#請點擊下方{傳送位置}，在 LINE 地圖選擇目前位置並確認傳送。\n',
                    QuickReply(items=[QuickReplyItem(action=LocationAction(label='傳送位置'))]))
     else:
-        # 當使用者的訊息不屬於以上預設指令時，呼叫 Gemini AI 回覆
         try:
-            # 確保使用官方正確的模型名稱
             response = gemini_client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=command,
@@ -173,7 +170,6 @@ def on_text(event):
             ai_reply = response.text.strip()
             reply_text(event.reply_token, ai_reply)
         except Exception as e:
-            # 詳細印出錯誤內容方便除錯
             import traceback
             print(f"Gemini API Error: {e}")
             traceback.print_exc()
@@ -192,6 +188,5 @@ def on_location(event):
     reply_text(event.reply_token, '\n'.join(lines))
 
 if __name__ == '__main__':
-    # 支援雲端平台指定的 PORT 變數
     port = int(os.getenv('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=False)
