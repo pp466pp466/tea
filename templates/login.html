@@ -55,7 +55,8 @@
                 });
                 const result = await res.json();
                 if (res.ok) {
-                    sessionStorage.setItem('user', JSON.stringify(result.user));
+                    // 改用 localStorage 持久化儲存登入資訊
+                    localStorage.setItem('user', JSON.stringify(result.user));
                     window.location.href = '/orders';
                 } else {
                     showModal('登入失敗', result.message);

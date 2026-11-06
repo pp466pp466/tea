@@ -205,8 +205,8 @@
                 return;
             }
 
-            // 檢查會員登入狀態
-            const userSession = JSON.parse(sessionStorage.getItem('user') || '{}');
+            // 優先讀取 localStorage 或 sessionStorage
+            const userSession = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
             const urlParams = new URLSearchParams(window.location.search);
             const lineUserId = userSession.line_user_id || urlParams.get('line_user_id') || '';
 
