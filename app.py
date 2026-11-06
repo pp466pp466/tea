@@ -8,6 +8,25 @@ from dotenv import load_dotenv
 from google import genai
 from init_db import create_and_seed_db
 
+# 匯入 LINE SDK v3 所需的類別與例外處理
+from linebot.v3 import WebhookHandler
+from linebot.v3.exceptions import InvalidSignatureError
+from linebot.v3.messaging import (
+    Configuration,
+    ApiClient,
+    MessagingApi,
+    ReplyMessageRequest,
+    TextMessage,
+    QuickReply,
+    QuickReplyItem,
+    LocationAction
+)
+from linebot.v3.webhooks import (
+    MessageEvent,
+    TextMessageContent,
+    LocationMessageContent
+)
+
 # 讀取 .env 變數
 load_dotenv()
 
